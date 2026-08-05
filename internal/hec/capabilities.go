@@ -398,8 +398,8 @@ func manifestCapabilityCards(manifests []capabilityManifest) []CapabilityCard {
 			ID:                   manifest.ID,
 			Description:          manifest.Description,
 			Installed:            manifest.InstalledByDefault,
-			Commands:             append([]string(nil), manifest.Commands...),
-			Skills:               append([]string(nil), manifest.Skills...),
+			Commands:             nonNilStrings(manifest.Commands),
+			Skills:               nonNilStrings(manifest.Skills),
 			Recipe:               recipe,
 			Tags:                 append([]string(nil), manifest.Tags...),
 			Source:               "manifest",
@@ -407,6 +407,13 @@ func manifestCapabilityCards(manifests []capabilityManifest) []CapabilityCard {
 		})
 	}
 	return cards
+}
+
+func nonNilStrings(values []string) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+	return append([]string(nil), values...)
 }
 
 func skillCapabilityCards(skills []SkillMetadata) []CapabilityCard {

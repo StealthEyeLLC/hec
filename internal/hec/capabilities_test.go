@@ -204,6 +204,20 @@ func TestCapabilitiesDirectCommandIncludeMissingAndLimit(t *testing.T) {
 	}
 }
 
+func TestManifestCapabilityCardsAlwaysUseArrays(t *testing.T) {
+	cards := manifestCapabilityCards([]capabilityManifest{{
+		ID:                 "empty-arrays",
+		Description:        "Empty arrays remain arrays",
+		InstalledByDefault: true,
+	}})
+	if len(cards) != 1 {
+		t.Fatalf("cards = %#v", cards)
+	}
+	if cards[0].Commands == nil || cards[0].Skills == nil {
+		t.Fatalf("commands and skills must be non-nil arrays: %#v", cards[0])
+	}
+}
+
 func TestMetadataTokenizationAndRanking(t *testing.T) {
 	got := tokenizeMetadataQuery("Git-worktree, durable/jobs git")
 	want := []string{"git", "worktree", "durable", "jobs"}
