@@ -390,7 +390,13 @@ func waitIntegrationStatus(t *testing.T, dispatcher *Dispatcher, handle, status 
 			return false
 		}
 		entry := integrationTerminalEntryNoFail(result, handle)
-		return entry != nil && entry["terminal_status"] == status
+		if entry == nil || entry["terminal_status"] != status {
+			return false
+		}
+		if status == TerminalStatusExited && entry["exit_code"] == nil && entry["signal"] == nil {
+			return false
+		}
+		return true
 	}, fmt.Sprintf("terminal %s did not reach %s", handle, status))
 }
 
