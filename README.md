@@ -56,6 +56,7 @@ ChatGPT and StealthEye may inspect, test, verify, commit, snapshot, branch, or b
 ## v1 design
 
 - [HEC v1 architecture and protocol](docs/HEC_V1_DESIGN.md)
+- [HEC v1 ChatGPT interface](docs/HEC_V1_CHATGPT_INTERFACE.md)
 - [HEC v1 capability forge](docs/HEC_V1_FORGE.md)
 - [HEC v1 construction and cutover plan](docs/HEC_V1_BUILD_PLAN.md)
 
