@@ -1,0 +1,5 @@
+id = "language.python"
+description = "Run Python programs and automation with Python 3"
+tags = ["python", "scripting", "automation"]
+commands = ["python3"]
+approximate_disk_class = "system"

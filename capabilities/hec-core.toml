@@ -1,0 +1,7 @@
+id = "hec.core"
+description = "Operate the HEC root workstation through one ChatGPT-native MCP action"
+tags = ["hec", "root", "workstation", "mcp"]
+commands = ["hec"]
+skills = ["hec-operator"]
+installed_by_default = true
+approximate_disk_class = "small"

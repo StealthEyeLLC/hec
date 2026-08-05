@@ -1,0 +1,5 @@
+id = "language.nodejs"
+description = "Run Node.js programs and JavaScript package workflows"
+tags = ["nodejs", "javascript", "npm"]
+commands = ["node", "npm"]
+approximate_disk_class = "system"

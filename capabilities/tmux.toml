@@ -1,0 +1,5 @@
+id = "terminal.tmux"
+description = "Run persistent interactive terminal sessions backed by tmux"
+tags = ["terminal", "persistent", "interactive", "tmux"]
+commands = ["tmux"]
+approximate_disk_class = "small"

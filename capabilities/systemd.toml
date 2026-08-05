@@ -1,0 +1,5 @@
+id = "systemd"
+description = "Manage services and durable transient jobs with systemd"
+tags = ["systemd", "service", "durable", "jobs"]
+commands = ["systemctl", "systemd-run"]
+approximate_disk_class = "system"

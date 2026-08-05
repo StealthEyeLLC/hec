@@ -1,0 +1,5 @@
+id = "source.git-github"
+description = "Use Git, Git worktrees, and GitHub CLI for repository work"
+tags = ["git", "github", "repository", "worktree"]
+commands = ["git", "gh"]
+approximate_disk_class = "small"

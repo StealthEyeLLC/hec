@@ -1,0 +1,5 @@
+id = "virtualization.incus"
+description = "Manage Incus system containers and virtual machines"
+tags = ["incus", "container", "virtual-machine", "infrastructure"]
+commands = ["incus"]
+approximate_disk_class = "system"

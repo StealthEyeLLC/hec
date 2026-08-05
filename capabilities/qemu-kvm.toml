@@ -1,0 +1,5 @@
+id = "virtualization.qemu-kvm"
+description = "Run and inspect QEMU virtual machines with KVM acceleration"
+tags = ["qemu", "kvm", "virtual-machine", "emulation"]
+commands = ["qemu-system-x86_64", "qemu-img", "kvm"]
+approximate_disk_class = "system"

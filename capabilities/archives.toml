@@ -1,0 +1,5 @@
+id = "files.archives"
+description = "Create, inspect, compress, and extract native archive formats"
+tags = ["archive", "compression", "tar", "gzip", "xz", "zstd", "unzip"]
+commands = ["tar", "gzip", "xz", "zstd", "unzip"]
+approximate_disk_class = "system"

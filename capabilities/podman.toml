@@ -1,0 +1,5 @@
+id = "containers.podman"
+description = "Build and run OCI containers with Podman"
+tags = ["podman", "container", "oci", "image"]
+commands = ["podman"]
+approximate_disk_class = "system"
