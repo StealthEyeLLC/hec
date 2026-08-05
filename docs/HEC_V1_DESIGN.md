@@ -1,6 +1,6 @@
 # HEC v1 Design
 
-**Status:** complete design draft; not frozen until approved by StealthEye.
+**Status:** v1 design frozen; build-ready.
 
 HEC is a ChatGPT-native, unrestricted root workstation. It is intentionally broad in installed capability and intentionally small in runtime architecture.
 
@@ -117,7 +117,7 @@ Input:
 
 ```json
 {
-  "operation": "hec.exec",
+  "operation": "run",
   "args": {},
   "idempotency_key": "optional; only meaningful where documented"
 }
@@ -155,7 +155,7 @@ Reasons for one tool:
 - ChatGPT never has to choose among dozens or hundreds of overlapping public tools.
 - Raw unrestricted execution remains obvious and permanent.
 
-The operation registry is dynamic behind the stable tool. `hec.capabilities` exposes the current catalog.
+The operation registry is dynamic behind the stable tool. `capabilities` exposes the current catalog.
 
 ## 5. Result envelope
 
@@ -165,7 +165,7 @@ Every operation returns structured MCP content conforming to one stable output s
 {
   "ok": true,
   "protocol": "HEC1/1.0.0",
-  "operation": "hec.exec",
+  "operation": "run",
   "status": "completed",
   "handle": null,
   "exit_code": 0,
@@ -203,12 +203,12 @@ The core contains only functionality that raw shell execution cannot expose clea
 ### Introspection
 
 ```text
-hec.health
-hec.version
-hec.capabilities
+health
+version
+capabilities
 ```
 
-`hec.capabilities` searches:
+`capabilities` searches:
 
 - built-in HEC operations;
 - plain capability manifests;
@@ -221,7 +221,7 @@ It does not enforce capabilities or restrict execution.
 ### Direct execution
 
 ```text
-hec.exec
+run
 ```
 
 Arguments:
@@ -248,20 +248,20 @@ Rules:
 - root is the default and unrestricted identity;
 - there is no command allowlist, denylist, approval pass, or preview pass;
 - synchronous execution is for work expected to finish during the current tool call;
-- long work uses `hec.job.start`;
+- long work uses `job.start`;
 - output is returned exactly, except for explicit size truncation;
 - invalid UTF-8 output is base64 encoded.
 
 ### Durable noninteractive jobs
 
 ```text
-hec.job.start
-hec.job.status
-hec.job.output
-hec.job.wait
-hec.job.signal
-hec.job.list
-hec.job.forget
+job.start
+job.status
+job.output
+job.wait
+job.signal
+job.list
+job.forget
 ```
 
 A job is a noninteractive command owned by a transient systemd service:
@@ -270,7 +270,7 @@ A job is a noninteractive command owned by a transient systemd service:
 hec-job-<id>.service
 ```
 
-`hec.job.start` accepts the same command, argv, cwd, environment, stdin-file, and timeout concepts as `hec.exec`. It returns immediately with:
+`job.start` accepts the same command, argv, cwd, environment, stdin-file, and timeout concepts as `run`. It returns immediately with:
 
 ```text
 job:<id>
@@ -305,14 +305,13 @@ No automatic retry occurs.
 ### Persistent terminals
 
 ```text
-hec.terminal.create
-hec.terminal.list
-hec.terminal.read
-hec.terminal.write
-hec.terminal.resize
-hec.terminal.signal
-hec.terminal.kill
-hec.terminal.delete
+terminal.open
+terminal.list
+terminal.read
+terminal.write
+terminal.resize
+terminal.signal
+terminal.close
 ```
 
 Terminals use a dedicated tmux server under `/run/hec/`.
@@ -327,29 +326,29 @@ A terminal may run:
 - a database console;
 - any other PTY program.
 
-`hec.terminal.read` supports:
+`terminal.read` supports:
 
 - current visible screen via `capture-pane`;
 - accumulated output by byte offset from a `pipe-pane` log.
 
-`hec.terminal.write` loads exact bytes into a tmux buffer and pastes the buffer, avoiding shell-escaping corruption.
+`terminal.write` loads exact bytes into a tmux buffer and pastes the buffer, avoiding shell-escaping corruption.
 
 Tmux terminals survive ChatGPT and HEC service reconnects as long as the tmux server remains alive. They are not advertised as surviving a host reboot.
 
 ### Files and uploads
 
 ```text
-hec.file.stat
-hec.file.list
-hec.file.read
-hec.file.write
-hec.file.append
-hec.file.patch
-hec.file.remove
-hec.upload.begin
-hec.upload.chunk
-hec.upload.finish
-hec.upload.abort
+file.stat
+file.list
+file.read
+file.write
+file.append
+file.patch
+file.remove
+upload.begin
+upload.chunk
+upload.finish
+upload.abort
 ```
 
 HEC accepts absolute paths everywhere. There is no artificial workspace jail.
@@ -358,21 +357,21 @@ File reads support byte offset and length. Binary output uses base64.
 
 File writes support UTF-8 and base64 content. Complete replacements are written through a temporary sibling and renamed into place because this is simpler and less failure-prone than leaving partial files. This behavior is invisible and does not introduce approvals or verification.
 
-`hec.file.patch` accepts a unified diff and applies it with native Git or patch tooling.
+`file.patch` accepts a unified diff and applies it with native Git or patch tooling.
 
 Chunked upload exists because large binary data should not be forced into one MCP request.
 
-Everything else—copy, move, find, rsync, rclone, archive, extraction, permissions, ownership, ACLs, attributes, mounts, and filesystem operations—remains directly available through `hec.exec` and normal tools.
+Everything else—copy, move, find, rsync, rclone, archive, extraction, permissions, ownership, ACLs, attributes, mounts, and filesystem operations—remains directly available through `run` and normal tools.
 
 ### Artifacts returned to ChatGPT
 
 ```text
-hec.artifact.create
-hec.artifact.stat
-hec.artifact.read
-hec.artifact.materialize
-hec.artifact.list
-hec.artifact.delete
+artifact.return
+artifact.stat
+artifact.read
+artifact.materialize
+artifact.list
+artifact.delete
 ```
 
 Artifacts are deliberately simple:
@@ -382,16 +381,16 @@ Artifacts are deliberately simple:
 
 They live under `/var/lib/hec/artifacts/` and are readable by byte range.
 
-The MCP result returns a resource link when the connected ChatGPT client supports it. `hec.artifact.read` is the universal fallback.
+The MCP result returns a resource link when the connected ChatGPT client supports it. `artifact.read` is the universal fallback.
 
 HEC does not implement a content-addressed store, tree database, reference collector, registry, or garbage-collection service in v1.
 
 ### Skills
 
 ```text
-hec.skill.list
-hec.skill.search
-hec.skill.read
+skill.list
+skill.find
+skill.read
 ```
 
 HEC skills use the Agent Skills structure:
@@ -440,7 +439,7 @@ skills = ["playwright-cli"]
 recipe = "browser-playwright"
 ```
 
-`hec.capabilities` performs ordinary metadata and text matching. It returns only the small relevant slice.
+`capabilities` performs ordinary metadata and text matching. It returns only the small relevant slice.
 
 There is no embedding server, vector database, capability graph database, planner, or automatic tool installer.
 
@@ -450,7 +449,7 @@ HEC does not implement a custom browser protocol in v1.
 
 It installs the official Playwright CLI for coding agents plus its Agent Skills. The Playwright CLI is specifically designed to be token-efficient, returns accessibility snapshots with stable element references, supports named sessions, persistent disk profiles, screenshots, network inspection, tracing, video, uploads, storage-state save/load, and arbitrary Playwright scripts.
 
-ChatGPT operates it through `hec.exec` or a persistent terminal.
+ChatGPT operates it through `run` or a persistent terminal.
 
 Default layout:
 
@@ -675,8 +674,8 @@ The local CLI calls the same registry directly without MCP:
 
 ```bash
 hec version
-hec call hec.health '{}'
-hec call hec.exec '{"argv":["uname","-a"]}'
+hec call health '{}'
+hec call run '{"argv":["uname","-a"]}'
 ```
 
 This makes HEC independently useful and allows construction or diagnosis even when ChatGPT or the tunnel is unavailable.

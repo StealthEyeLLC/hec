@@ -1,6 +1,6 @@
 # HEC v1 Capability Forge
 
-**Status:** complete design draft; not frozen until approved by StealthEye.
+**Status:** v1 forge plan frozen; build-ready.
 
 HEC is intended to make ChatGPT exceptionally capable across software engineering, DevOps, systems work, browsers, data, documents, media, networks, containers, virtual machines, clouds, and debugging.
 
@@ -105,7 +105,7 @@ forge/
     systems.toml
 ```
 
-Recipes are readable shell scripts. ChatGPT runs them through `hec.exec`. There is no recipe daemon or installation controller.
+Recipes are readable shell scripts. ChatGPT runs them through `run`. There is no recipe daemon or installation controller.
 
 ## 4. Always-ready base tools
 

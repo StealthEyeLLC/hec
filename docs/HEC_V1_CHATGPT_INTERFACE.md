@@ -1,6 +1,6 @@
 # HEC v1 ChatGPT Interface
 
-**Status:** complete design draft; not frozen until approved by StealthEye.
+**Status:** v1 interface frozen; build-ready.
 
 HEC exists specifically for ChatGPT. This document defines the external interface from the model's point of view.
 
@@ -9,13 +9,13 @@ HEC exists specifically for ChatGPT. This document defines the external interfac
 The interface should make these choices nearly automatic:
 
 ```text
-need to run something now        -> hec.exec
-need work to outlive this turn   -> hec.job.start
-need an interactive PTY          -> hec.terminal.create
-need to inspect or edit bytes     -> hec.file.*
-need to send or receive a file    -> hec.upload.* / hec.artifact.*
-need to know what exists          -> hec.capabilities
-need operating guidance           -> hec.skill.search / hec.skill.read
+need to run something now        -> run
+need work to outlive this turn   -> job.start
+need an interactive PTY          -> terminal.open
+need to inspect or edit bytes     -> file.*
+need to send or receive a file    -> upload.* / artifact.*
+need to know what exists          -> capabilities
+need operating guidance           -> skill.find / skill.read
 ```
 
 There should be no separate mental model for the host, a forge container, a target scheduler, a policy layer, or a workflow service.
@@ -31,22 +31,36 @@ call_hec
 Recommended title:
 
 ```text
-HEC Root Workstation
+HEC
 ```
 
 Recommended description:
 
-> Operate the owner-controlled HEC Linux host with unrestricted root authority. Use `hec.exec` for direct commands, `hec.job.start` for noninteractive work that may outlive the current ChatGPT turn, `hec.terminal.create` for interactive programs, file and artifact operations for binary-safe transfer, and `hec.capabilities` or HEC skills when you need to discover installed tools or usage guidance. HEC does not impose command policy, approvals, previews, verification, rollback, or sandboxing.
+> Operate the HEC workstation.
 
-The description should remain stable. New native operations are discovered through `hec.capabilities`; they do not require adding a new public MCP tool.
+The description should remain stable. New native operations are discovered through `capabilities`; they do not require adding a new public MCP tool.
 
-## 3. Input economy
+## 3. Public metadata and friction freeze
+
+Initial public metadata is deliberately minimal:
+
+```text
+MCP tool name: call_hec
+Title: HEC
+Description: Operate the HEC workstation.
+```
+
+The initial action omits optional risk annotations. HEC does not publish warning prose, a second read-only action, platform-specific wrappers, or confirmation-tuning machinery.
+
+Those measures are deferred. They may be considered only after real HEC use demonstrates both that they solve a concrete problem and that they add no meaningful friction. Internal operation names are chosen for ChatGPT clarity, not as warning labels.
+
+## 4. Input economy
 
 Input remains:
 
 ```json
 {
-  "operation": "hec.exec",
+  "operation": "run",
   "args": {},
   "idempotency_key": "optional"
 }
@@ -56,9 +70,9 @@ The tool schema should not contain an enormous `oneOf` tree for every operation.
 
 HEC validates operation-specific arguments after dispatch and returns a concise argument error with the expected shape.
 
-## 4. Operation selection rules
+## 5. Operation selection rules
 
-### Use `hec.exec` when
+### Use `run` when
 
 - the command is noninteractive;
 - it should finish during the current call;
@@ -67,7 +81,7 @@ HEC validates operation-specific arguments after dispatch and returns a concise 
 
 Prefer direct `argv` when the command is already naturally tokenized. Use `command` when pipes, redirects, shell expansion, loops, heredocs, or compound commands are useful.
 
-### Use `hec.job.start` when
+### Use `job.start` when
 
 - compilation, installation, cloning, rendering, testing, downloading, or another command may take longer than the tool call;
 - the command should continue after ChatGPT disconnects;
@@ -104,7 +118,7 @@ Use an idempotency key when a failed ChatGPT response could otherwise cause the 
 - the capability is optional or installable by recipe;
 - an established HEC or project-specific method exists.
 
-## 5. Result economy
+## 6. Result economy
 
 HEC output should be optimized for model comprehension rather than operator dashboards.
 
@@ -144,7 +158,7 @@ The MCP result should include:
 Example text summary:
 
 ```text
-Completed hec.exec on the host with exit code 0.
+Completed run on the host with exit code 0.
 ```
 
 If stdout is the useful answer, the text summary may simply be stdout plus a compact exit note.
@@ -166,14 +180,14 @@ When output exceeds the limit:
 
 HEC should never silently discard whether truncation occurred.
 
-## 6. Resource presentation
+## 7. Resource presentation
 
 When a result creates an artifact:
 
 - return a structured artifact descriptor;
 - return an MCP resource link when supported;
 - use an embedded image content block for a small preview when useful;
-- retain `hec.artifact.read` as the fallback.
+- retain `artifact.read` as the fallback.
 
 Artifact descriptor:
 
@@ -189,9 +203,9 @@ Artifact descriptor:
 
 No content hash is required unless the actual task asks for one.
 
-## 7. Capability response shape
+## 8. Capability response shape
 
-`hec.capabilities` accepts:
+`capabilities` accepts:
 
 ```json
 {
@@ -220,7 +234,7 @@ Return compact cards:
 
 Do not return the entire binary inventory unless explicitly requested.
 
-## 8. Skill disclosure
+## 9. Skill disclosure
 
 ChatGPT should see only skill metadata during discovery:
 
@@ -230,13 +244,13 @@ description
 location
 ```
 
-The full `SKILL.md` is returned only by `hec.skill.read` or when the caller explicitly asks for the skill.
+The full `SKILL.md` is returned only by `skill.read` or when the caller explicitly asks for the skill.
 
 References, scripts, and assets remain files and are loaded only when relevant.
 
 This mirrors the Agent Skills progressive-disclosure model and preserves context for the actual engineering task.
 
-## 9. Native CLI preference
+## 10. Native CLI preference
 
 HEC should not teach ChatGPT that wrappers are inherently better than ordinary commands.
 
@@ -257,7 +271,7 @@ Examples:
 - use official cloud CLIs rather than a cloud wrapper;
 - use project package managers and build commands rather than a HEC build system.
 
-## 10. Browser interaction
+## 11. Browser interaction
 
 ChatGPT uses the official Playwright CLI skill.
 
@@ -274,9 +288,9 @@ return files through HEC artifacts
 
 Persistent accounts use named profile directories under `/var/lib/hec/browser/profiles`.
 
-Browser commands run through `hec.exec` when short or a terminal when an interactive/debugging session is useful.
+Browser commands run through `run` when short or a terminal when an interactive/debugging session is useful.
 
-## 11. Handling a failed ChatGPT turn
+## 12. Handling a failed ChatGPT turn
 
 HEC cannot prevent the ChatGPT app, model invocation, mobile client, or network from failing.
 
@@ -291,14 +305,14 @@ If a synchronous response is lost, ChatGPT inspects current files, Git state, se
 If a job was accepted:
 
 ```text
-hec.job.list
-hec.job.status
-hec.job.output
+job.list
+job.status
+job.output
 ```
 
 recover the process and output.
 
-If the caller used an idempotency key, repeating `hec.job.start` with that key returns the existing job handle.
+If the caller used an idempotency key, repeating `job.start` with that key returns the existing job handle.
 
 ### Terminal
 
@@ -306,7 +320,7 @@ List terminals and read the existing session.
 
 This is the complete HEC-specific answer to a failed ChatGPT reasoning turn.
 
-## 12. ChatGPT Project use
+## 13. ChatGPT Project use
 
 The ChatGPT Project holds:
 
@@ -330,7 +344,7 @@ HEC holds:
 
 The Project is conversational continuity. The host is operational truth.
 
-## 13. App lifecycle
+## 14. App lifecycle
 
 The ChatGPT custom MCP app uses a frozen snapshot of public actions and inputs.
 
@@ -343,13 +357,13 @@ Therefore:
 
 HEC adds no local UI. ChatGPT is the primary interface; the local `hec call` CLI is the fallback.
 
-## 14. Platform behavior
+## 15. Platform behavior
 
 HEC itself adds no confirmations, safety checks, approvals, or restrictions.
 
 ChatGPT or the hosting workspace may still display confirmations or block certain actions according to platform behavior. That behavior is outside HEC and is not duplicated by HEC.
 
-## 15. Operator skill outline
+## 16. Operator skill outline
 
 The future `skills/hec-operator/SKILL.md` should remain short and contain:
 
@@ -363,7 +377,7 @@ The future `skills/hec-operator/SKILL.md` should remain short and contain:
 
 It should not repeat the forge inventory or embed long reference material into every context.
 
-## 16. Research basis
+## 17. Research basis
 
 Primary references:
 

@@ -2,7 +2,7 @@
 
 **Repository:** `StealthEyeLLC/hec`  
 **Project:** HEC  
-**Status:** Complete v1 design source. Build-ready. Do not reopen broad architecture research unless StealthEye explicitly requests it or a concrete implementation failure proves a design change necessary.
+**Status:** Canonical v1 source frozen; prebuild complete; implementation may begin only after an explicit StealthEye instruction.
 
 ---
 
@@ -214,18 +214,18 @@ call_hec
 Recommended title:
 
 ```text
-HEC Root Workstation
+HEC
 ```
 
 Recommended description:
 
-> Operate the owner-controlled HEC Linux host with unrestricted root authority. Use `hec.exec` for direct commands, `hec.job.start` for noninteractive work that may outlive the current ChatGPT turn, `hec.terminal.create` for interactive programs, file and artifact operations for binary-safe transfer, and `hec.capabilities` or HEC skills when installed capability or operating guidance must be discovered. HEC imposes no command policy, approvals, previews, verification, rollback, or sandboxing.
+> Operate the HEC workstation.
 
 Input:
 
 ```json
 {
-  "operation": "hec.exec",
+  "operation": "run",
   "args": {},
   "idempotency_key": "optional"
 }
@@ -239,22 +239,51 @@ The internal operation catalog may grow without changing the public ChatGPT acti
 
 ---
 
-## 7. ChatGPT operation-selection model
+## 7. Public metadata and friction freeze
+
+Initial public metadata is frozen as:
+
+```text
+MCP tool name: call_hec
+Title: HEC
+Description: Operate the HEC workstation.
+```
+
+The initial action omits optional risk annotations. Do not add warning prose, split read/write public actions, confirmation-tuning wrappers, platform-specific indirection, or other anticipatory friction measures before real use.
+
+Anything previously discussed as a possible platform-friction measure is deferred. It may be added only after actual operation demonstrates a concrete need and StealthEye confirms that the change adds no meaningful friction.
+
+Internal operations are optimized for ChatGPT clarity:
+
+```text
+run
+job.*
+terminal.*
+file.*
+upload.*
+artifact.*
+capabilities
+skill.*
+health
+version
+```
+
+## 8. ChatGPT operation-selection model
 
 The interface should make the following choices nearly automatic:
 
 ```text
-run something now                  -> hec.exec
-work may outlive this turn         -> hec.job.start
-program needs a PTY or later input -> hec.terminal.create
-inspect or edit exact bytes        -> hec.file.*
-send a large file to HEC           -> hec.upload.*
-return a file to ChatGPT           -> hec.artifact.*
-discover installed capability      -> hec.capabilities
-load operating guidance            -> hec.skill.search / hec.skill.read
+run something now                  -> run
+work may outlive this turn         -> job.start
+program needs a PTY or later input -> terminal.open
+inspect or edit exact bytes        -> file.*
+send a large file to HEC           -> upload.*
+return a file to ChatGPT           -> artifact.*
+discover installed capability      -> capabilities
+load operating guidance            -> skill.find / skill.read
 ```
 
-### 7.1 `hec.exec`
+### 8.1 `run`
 
 Use for noninteractive commands expected to finish during the current tool call.
 
@@ -272,9 +301,9 @@ It supports:
 
 There is no allowlist, denylist, approval pass, preview pass, or target selection.
 
-### 7.2 Durable jobs
+### 8.2 Durable jobs
 
-Use `hec.job.start` when a noninteractive command may run longer than the current turn or must survive a broken ChatGPT response.
+Use `job.start` when a noninteractive command may run longer than the current turn or must survive a broken ChatGPT response.
 
 Jobs run as transient systemd services:
 
@@ -295,13 +324,13 @@ Job state is stored only as ordinary files needed to operate the process:
 Core job operations:
 
 ```text
-hec.job.start
-hec.job.status
-hec.job.output
-hec.job.wait
-hec.job.signal
-hec.job.list
-hec.job.forget
+job.start
+job.status
+job.output
+job.wait
+job.signal
+job.list
+job.forget
 ```
 
 Output is read by byte offset.
@@ -310,7 +339,7 @@ Only durable job creation uses an optional idempotency key. Repeating the same k
 
 No automatic retry occurs.
 
-### 7.3 Persistent terminals
+### 8.3 Persistent terminals
 
 Use terminals for:
 
@@ -327,14 +356,13 @@ Terminals use a dedicated tmux server.
 Core operations:
 
 ```text
-hec.terminal.create
-hec.terminal.list
-hec.terminal.read
-hec.terminal.write
-hec.terminal.resize
-hec.terminal.signal
-hec.terminal.kill
-hec.terminal.delete
+terminal.open
+terminal.list
+terminal.read
+terminal.write
+terminal.resize
+terminal.signal
+terminal.close
 ```
 
 Terminal reads support:
@@ -344,27 +372,27 @@ Terminal reads support:
 
 Terminal writes paste exact bytes through tmux buffers rather than relying on shell-quoted `send-keys`.
 
-### 7.4 Files and uploads
+### 8.4 Files and uploads
 
 Core file operations:
 
 ```text
-hec.file.stat
-hec.file.list
-hec.file.read
-hec.file.write
-hec.file.append
-hec.file.patch
-hec.file.remove
+file.stat
+file.list
+file.read
+file.write
+file.append
+file.patch
+file.remove
 ```
 
 Core upload operations:
 
 ```text
-hec.upload.begin
-hec.upload.chunk
-hec.upload.finish
-hec.upload.abort
+upload.begin
+upload.chunk
+upload.finish
+upload.abort
 ```
 
 Absolute paths are allowed.
@@ -373,21 +401,21 @@ Binary reads and writes use base64 when necessary.
 
 Large files use chunked transfer.
 
-Copy, move, find, permissions, ownership, ACLs, archives, rsync, rclone, mounts, extraction, and similar operations normally use native commands through `hec.exec`.
+Copy, move, find, permissions, ownership, ACLs, archives, rsync, rclone, mounts, extraction, and similar operations normally use native commands through `run`.
 
-### 7.5 Returned artifacts
+### 8.5 Returned artifacts
 
 Artifacts exist only to make generated files downloadable or reusable through ChatGPT.
 
 Core operations:
 
 ```text
-hec.artifact.create
-hec.artifact.stat
-hec.artifact.read
-hec.artifact.materialize
-hec.artifact.list
-hec.artifact.delete
+artifact.return
+artifact.stat
+artifact.read
+artifact.materialize
+artifact.list
+artifact.delete
 ```
 
 Artifacts are:
@@ -401,13 +429,13 @@ They live under:
 /var/lib/hec/artifacts/
 ```
 
-HEC returns MCP resource links when the client supports them. `hec.artifact.read` remains the fallback.
+HEC returns MCP resource links when the client supports them. `artifact.read` remains the fallback.
 
 There is no content-addressed store, artifact registry, garbage collector, tree database, evidence package, or receipt system.
 
 ---
 
-## 8. Result design
+## 9. Result design
 
 Results are optimized for ChatGPT comprehension and context economy.
 
@@ -417,7 +445,7 @@ Stable shape:
 {
   "ok": true,
   "protocol": "HEC1/1.0.0",
-  "operation": "hec.exec",
+  "operation": "run",
   "status": "completed",
   "handle": null,
   "exit_code": 0,
@@ -476,13 +504,13 @@ MCP results should contain:
 
 ---
 
-## 9. Capability discovery and skills
+## 10. Capability discovery and skills
 
 HEC is broad, but ChatGPT should not receive a complete binary inventory in every turn.
 
-### 9.1 Capability discovery
+### 10.1 Capability discovery
 
-`hec.capabilities` searches:
+`capabilities` searches:
 
 - built-in HEC operations;
 - plain TOML capability manifests;
@@ -517,7 +545,7 @@ Discovery uses ordinary metadata and text matching.
 
 There is no embedding server, vector database, capability graph, planner, or automatic installer.
 
-### 9.2 Skills
+### 10.2 Skills
 
 Skill roots:
 
@@ -541,9 +569,9 @@ skill-name/
 Core operations:
 
 ```text
-hec.skill.list
-hec.skill.search
-hec.skill.read
+skill.list
+skill.find
+skill.read
 ```
 
 Discovery returns only lightweight metadata until ChatGPT requests the full skill.
@@ -560,13 +588,13 @@ raw native CLI
 
 ---
 
-## 10. Browser design
+## 11. Browser design
 
 HEC does not implement a custom browser action API.
 
 Install and use the official Playwright CLI for coding agents plus its Agent Skills.
 
-ChatGPT operates Playwright through `hec.exec` or a persistent terminal.
+ChatGPT operates Playwright through `run` or a persistent terminal.
 
 Default browser:
 
@@ -603,7 +631,7 @@ HEC adds no origin allowlists, proxy restrictions, browser policy engine, or cus
 
 ---
 
-## 11. Workspaces and project state
+## 12. Workspaces and project state
 
 A workspace is a convention, not a controller.
 
@@ -648,7 +676,7 @@ Use Git worktrees for parallel branches and experiments.
 
 ---
 
-## 12. Credentials
+## 13. Credentials
 
 HEC uses native credential locations and mechanisms:
 
@@ -669,7 +697,7 @@ Secure MCP Tunnel credentials are supplied to `hec.service` through a root-reada
 
 ---
 
-## 13. Capability forge
+## 14. Capability forge
 
 HEC should eventually provide a broad professional workstation, but HEC does not build a custom package manager.
 
@@ -686,7 +714,7 @@ Use:
 - Docker, Podman, or Incus for conflicting or disposable servers;
 - plain readable shell recipes for the long tail.
 
-### 13.1 Broad capability domains
+### 14.1 Broad capability domains
 
 The forge should cover:
 
@@ -707,7 +735,7 @@ The forge should cover:
 - mobile, Android, cross-compilation, firmware, and hardware tools when a real task requires them;
 - security and supply-chain tools as optional capabilities, never mandatory gates.
 
-### 13.2 Heavy tools
+### 14.2 Heavy tools
 
 Large tools are installed after core HEC works and disk space is available.
 
@@ -729,7 +757,7 @@ Their installation remains one-command through checked-in shell recipes, not thr
 
 ---
 
-## 14. Actual initial host
+## 15. Actual initial host
 
 The initial HEC host was measured as:
 
@@ -760,7 +788,7 @@ Therefore:
 
 ---
 
-## 15. Construction plan
+## 16. Construction plan
 
 The build is a sequence of usable vertical slices, not a governance process.
 
@@ -805,9 +833,9 @@ hec version
 - Implement embedded MCP server and Secure MCP Tunnel.
 - Register `call_hec`.
 - Implement:
-  - `hec.health`
-  - `hec.version`
-  - `hec.exec`
+  - `health`
+  - `version`
+  - `run`
 - Install release under `/opt/hec/releases/`.
 - Point `/opt/hec/current` to the release.
 - Install root `hec.service`.
@@ -934,7 +962,7 @@ Cutover order:
 
 ---
 
-## 16. Expected HEC state and processes
+## 17. Expected HEC state and processes
 
 HEC itself requires one permanent process:
 
@@ -968,7 +996,7 @@ HEC stores no:
 
 ---
 
-## 17. ChatGPT Project versus HEC
+## 18. ChatGPT Project versus HEC
 
 The ChatGPT Project holds:
 
@@ -1000,9 +1028,9 @@ When they disagree, inspect the real host and repository.
 
 ---
 
-## 18. Rules for future ChatGPT work
+## 19. Rules for future ChatGPT work
 
-### 18.1 Build now; do not reopen design casually
+### 19.1 Build now; do not reopen design casually
 
 The broad research and architecture pass is complete.
 
@@ -1017,7 +1045,7 @@ Search or research only when:
 
 Do not add architecture because it might theoretically be useful.
 
-### 18.2 Smallest-change rule
+### 19.2 Smallest-change rule
 
 When a real failure occurs:
 
@@ -1027,7 +1055,7 @@ When a real failure occurs:
 4. preserve unrestricted raw execution;
 5. commit the working result.
 
-### 18.3 No scope drift
+### 19.3 No scope drift
 
 Do not turn HEC into:
 
@@ -1043,7 +1071,7 @@ Do not turn HEC into:
 
 HEC is the thin, powerful connection between ChatGPT and a full root Linux workstation.
 
-### 18.4 Canonical-change rule
+### 19.4 Canonical-change rule
 
 Informal discussion does not alter the HEC design.
 
@@ -1051,7 +1079,7 @@ A canonical change requires clear StealthEye approval and a corresponding update
 
 ---
 
-## 19. Immediate next action
+## 20. Immediate next action
 
 Begin the build at Slice 0 and Slice 1:
 
@@ -1062,9 +1090,9 @@ repository foundation
 -> embedded MCP tunnel
 -> hec.service
 -> call_hec
--> hec.health
--> hec.version
--> unrestricted hec.exec
+-> health
+-> version
+-> unrestricted run
 -> first real call from ChatGPT
 ```
 
@@ -1074,7 +1102,7 @@ Do not add new architecture before the first unrestricted root command succeeds 
 
 ---
 
-## 20. Final definition
+## 21. Final definition
 
 HEC is:
 

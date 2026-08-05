@@ -1,6 +1,6 @@
 # HEC
 
-**Status:** complete v1 design draft; not frozen until approved by StealthEye.
+**Status:** v1 design frozen; prebuild complete; ready for implementation.
 
 HEC is a standalone, ChatGPT-native, unrestricted root engineering environment designed and operated by ChatGPT and StealthEye.
 
@@ -59,6 +59,7 @@ ChatGPT and StealthEye may inspect, test, verify, commit, snapshot, branch, or b
 - [HEC v1 ChatGPT interface](docs/HEC_V1_CHATGPT_INTERFACE.md)
 - [HEC v1 capability forge](docs/HEC_V1_FORGE.md)
 - [HEC v1 construction and cutover plan](docs/HEC_V1_BUILD_PLAN.md)
+- [HEC v1 prebuild freeze](docs/PREBUILD_FREEZE.md)
 
 The decisive architecture is:
 
@@ -73,7 +74,7 @@ one root hec.service
    v
 one call_hec tool
    |
-   +-- unrestricted exec
+   +-- unrestricted commands
    +-- systemd durable jobs
    +-- tmux terminals
    +-- files, uploads, and returned artifacts

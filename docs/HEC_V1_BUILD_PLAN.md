@@ -1,10 +1,16 @@
 # HEC v1 Build Plan
 
-**Status:** complete construction draft; not frozen until approved by StealthEye.
+**Status:** v1 construction plan frozen; ready to execute after explicit authorization.
 
 This is an execution order, not a governance process. Each slice ends with a directly usable HEC capability. No phase adds receipts, evidence, mandatory verification, approval, rollback, or policy machinery.
 
-## 1. Build rule
+## 1. Build start gate
+
+This plan is frozen, but execution does not begin until StealthEye explicitly instructs ChatGPT to start building HEC.
+
+Prebuild document edits, repository planning commits, and source synchronization are allowed before that instruction. Installing packages, compiling HEC, creating services, provisioning the HEC tunnel, or changing active infrastructure are build actions and remain out of scope until the start instruction.
+
+## 2. Build rule
 
 At every point:
 
@@ -17,7 +23,7 @@ At every point:
 
 SEZU and Baby may perform construction work. They are never linked, imported, called, or required by the finished HEC runtime.
 
-## 2. Construction boundary
+## 3. Construction boundary
 
 Initial source repository:
 
@@ -45,7 +51,7 @@ SEZU tunnel
 SSH
 ```
 
-## 3. Slice 0 — repository foundation
+## 4. Slice 0 — repository foundation
 
 Create:
 
@@ -80,9 +86,9 @@ github.com/modelcontextprotocol/go-sdk v1.4.1
 
 The first commit should compile a `hec version` binary locally.
 
-## 4. Slice 1 — direct ChatGPT-to-root connection
+## 5. Slice 1 — direct ChatGPT-to-root connection
 
-### 4.1 Install the HEC Go toolchain
+### 5.1 Install the HEC Go toolchain
 
 Install Go 1.26.2 under:
 
@@ -99,7 +105,7 @@ PATH=$GOROOT/bin:$PATH
 
 Do not replace Ubuntu's packages or existing Node/Python toolchains.
 
-### 4.2 Implement the in-process MCP tunnel
+### 5.2 Implement the in-process MCP tunnel
 
 In `hec serve`:
 
@@ -135,15 +141,15 @@ return client.Run(ctx)
 
 Use the exact API exposed by the pinned modules during implementation; the above is the current official pattern.
 
-### 4.3 Implement the first operations
+### 5.3 Implement the first operations
 
 ```text
-hec.health
-hec.version
-hec.exec
+health
+version
+run
 ```
 
-`hec.exec` initially needs:
+`run` initially needs:
 
 - `command` or `argv`;
 - `cwd`;
@@ -156,7 +162,7 @@ hec.exec
 
 No job system, files subsystem, or skills are required for the first connection.
 
-### 4.4 Install the first release
+### 5.4 Install the first release
 
 ```text
 /opt/hec/releases/0.0.1/bin/hec
@@ -167,7 +173,7 @@ No job system, files subsystem, or skills are required for the first connection.
 
 The first `hec.service` runs as root and embeds the tunnel.
 
-### 4.5 Create a separate OpenAI tunnel and ChatGPT app
+### 5.5 Create a separate OpenAI tunnel and ChatGPT app
 
 Use a new HEC tunnel ID and runtime API key so SEZU remains reachable during construction.
 
@@ -179,35 +185,35 @@ call_hec
 
 Do not reuse the SEZU app name or operation catalog.
 
-### 4.6 First real calls
+### 5.6 First real calls
 
 From ChatGPT:
 
 ```text
-hec.health
-hec.version
-hec.exec -> id
-hec.exec -> uname -a
-hec.exec -> systemctl status hec
+health
+version
+run -> id
+run -> uname -a
+run -> systemctl status hec
 ```
 
 Once those calls succeed, HEC is independently alive.
 
-## 5. Slice 2 — durable jobs
+## 6. Slice 2 — durable jobs
 
 Implement:
 
 ```text
-hec.job.start
-hec.job.status
-hec.job.output
-hec.job.wait
-hec.job.signal
-hec.job.list
-hec.job.forget
+job.start
+job.status
+job.output
+job.wait
+job.signal
+job.list
+job.forget
 ```
 
-### 5.1 Job directory
+### 6.1 Job directory
 
 ```text
 /var/lib/hec/jobs/<id>/
@@ -219,7 +225,7 @@ hec.job.forget
 
 This is process metadata, not an audit record.
 
-### 5.2 Job runner
+### 6.2 Job runner
 
 `hec job-run <spec>`:
 
@@ -230,7 +236,7 @@ This is process metadata, not an audit record.
 5. writes native exit code or signal to `result.json`;
 6. exits with the same outcome.
 
-### 5.3 systemd launch
+### 6.3 systemd launch
 
 Launch a transient service similar to:
 
@@ -246,9 +252,9 @@ systemd-run \
 
 Do not use `--collect` initially. HEC can inspect the unit while systemd retains it and can use `result.json` afterward.
 
-### 5.4 Optional duplicate-start key
+### 6.4 Optional duplicate-start key
 
-When `idempotency_key` is supplied to `hec.job.start`:
+When `idempotency_key` is supplied to `job.start`:
 
 ```text
 /var/lib/hec/job-keys/<sha256-key>
@@ -258,7 +264,7 @@ contains the job ID. Existing key means return the existing handle.
 
 No other operation requires idempotency machinery in v1.
 
-### 5.5 Reproduce the ChatGPT failure case
+### 6.5 Reproduce the ChatGPT failure case
 
 1. start a command that runs for several minutes;
 2. disable or restart only `hec.service` after the job handle is returned;
@@ -269,33 +275,33 @@ No other operation requires idempotency machinery in v1.
 
 This is ordinary functional use of the job API, not a reliability framework.
 
-## 6. Slice 3 — files, uploads, and returned artifacts
+## 7. Slice 3 — files, uploads, and returned artifacts
 
-### 6.1 File operations
+### 7.1 File operations
 
 Implement:
 
 ```text
-hec.file.stat
-hec.file.list
-hec.file.read
-hec.file.write
-hec.file.append
-hec.file.patch
-hec.file.remove
+file.stat
+file.list
+file.read
+file.write
+file.append
+file.patch
+file.remove
 ```
 
 Use native filesystem APIs. Accept absolute paths.
 
-### 6.2 Chunked upload
+### 7.2 Chunked upload
 
 Implement:
 
 ```text
-hec.upload.begin
-hec.upload.chunk
-hec.upload.finish
-hec.upload.abort
+upload.begin
+upload.chunk
+upload.finish
+upload.abort
 ```
 
 State:
@@ -308,17 +314,17 @@ State:
 
 No upload database is needed.
 
-### 6.3 Artifacts
+### 7.3 Artifacts
 
 Implement:
 
 ```text
-hec.artifact.create
-hec.artifact.stat
-hec.artifact.read
-hec.artifact.materialize
-hec.artifact.list
-hec.artifact.delete
+artifact.return
+artifact.stat
+artifact.read
+artifact.materialize
+artifact.list
+artifact.delete
 ```
 
 Artifact layout:
@@ -337,9 +343,9 @@ Register an MCP resource handler for:
 hec://artifact/<id>
 ```
 
-Return resource links from tool results. Keep `hec.artifact.read` for clients that do not expose resource links usefully.
+Return resource links from tool results. Keep `artifact.read` for clients that do not expose resource links usefully.
 
-## 7. Slice 4 — persistent arbitrary terminals
+## 8. Slice 4 — persistent arbitrary terminals
 
 Implement the terminal operations with a dedicated tmux socket:
 
@@ -347,16 +353,16 @@ Implement the terminal operations with a dedicated tmux socket:
 /run/hec/tmux.sock
 ```
 
-### 7.1 Create
+### 8.1 Create
 
-`hec.terminal.create`:
+`terminal.open`:
 
 - assigns an ID and optional human name;
 - creates a detached tmux session;
 - starts the caller's command or a Bash shell;
 - enables `pipe-pane` into `/var/lib/hec/terminals/<id>/output`.
 
-### 7.2 Read
+### 8.2 Read
 
 Support:
 
@@ -367,7 +373,7 @@ mode=output with byte offset
 
 Screen mode uses `capture-pane -p -e -J`.
 
-### 7.3 Write
+### 8.3 Write
 
 For exact text or bytes:
 
@@ -378,13 +384,13 @@ For exact text or bytes:
 
 This avoids quoting and `send-keys` interpretation problems.
 
-### 7.4 Control
+### 8.4 Control
 
 Implement resize, interrupt, signal, kill, and delete with ordinary tmux and process commands.
 
-## 8. Slice 5 — ChatGPT capability discovery and skills
+## 9. Slice 5 — ChatGPT capability discovery and skills
 
-### 8.1 Agent Skill structure
+### 9.1 Agent Skill structure
 
 Create the built-in HEC operator skill:
 
@@ -405,27 +411,27 @@ The skill teaches ChatGPT:
 - how to use Git worktrees;
 - how to operate native tools without expecting wrappers.
 
-### 8.2 Skill operations
+### 9.2 Skill operations
 
 Implement:
 
 ```text
-hec.skill.list
-hec.skill.search
-hec.skill.read
+skill.list
+skill.find
+skill.read
 ```
 
 Read only metadata until ChatGPT asks for the full skill. This keeps model context small.
 
-### 8.3 Capability manifests
+### 9.3 Capability manifests
 
 Add plain TOML manifests and recipe metadata.
 
-`hec.capabilities` searches them using ordinary text matching. It may also check named commands with `exec.LookPath`.
+`capabilities` searches them using ordinary text matching. It may also check named commands with `exec.LookPath`.
 
 No semantic database or indexing service.
 
-## 9. Slice 6 — browser capability
+## 10. Slice 6 — browser capability
 
 Install Node prerequisites if not already present, then:
 
@@ -453,9 +459,9 @@ Use:
 
 HEC does not implement browser actions in Go. ChatGPT calls `playwright-cli` through execution or a persistent terminal and returns screenshots/downloads/traces through file or artifact operations.
 
-## 10. Slice 7 — core forge
+## 11. Slice 7 — core forge
 
-### 10.1 Preserve existing useful tools
+### 11.1 Preserve existing useful tools
 
 Keep:
 
@@ -471,7 +477,7 @@ Git
 Caddy
 ```
 
-### 10.2 Install runtime managers
+### 11.2 Install runtime managers
 
 Install:
 
@@ -495,7 +501,7 @@ Set:
 MISE_TRUSTED_CONFIG_PATHS=/
 ```
 
-### 10.3 Install base apt set
+### 11.3 Install base apt set
 
 Use `forge/apt/base.txt` and one ordinary command:
 
@@ -506,7 +512,7 @@ xargs -a forge/apt/base.txt apt-get install -y
 
 The file contains one package name per line with comments removed by the script.
 
-### 10.4 Install Docker carefully
+### 11.4 Install Docker carefully
 
 The current host already has Podman, Incus, QEMU, and container-related packages. Before installing official Docker Engine, inspect installed `containerd`, `runc`, and `podman-docker` packages because Docker's official packages may conflict with them.
 
@@ -522,13 +528,13 @@ docker-compose-plugin
 
 Do not remove Podman or Incus merely because Docker is installed.
 
-### 10.5 Install professional extended tools
+### 11.5 Install professional extended tools
 
 Install the extended layer from `forge/apt/extended.txt`, then use recipes for upstream-only tools.
 
 Do not install the heaviest desktop/media/CAD/mobile packages until disk reclamation is complete.
 
-## 11. Slice 8 — workspaces and repositories
+## 12. Slice 8 — workspaces and repositories
 
 Create:
 
@@ -538,7 +544,7 @@ Create:
 /srv/hec/deliveries
 ```
 
-Add workspace discovery to `hec.capabilities`, but no workspace controller.
+Add workspace discovery to `capabilities`, but no workspace controller.
 
 Recommended repository arrangement:
 
@@ -550,7 +556,7 @@ Recommended repository arrangement:
 
 Use normal `git worktree add` for parallel work.
 
-## 12. Slice 9 — HEC's own maintenance operations
+## 13. Slice 9 — HEC's own maintenance operations
 
 HEC needs no custom update daemon.
 
@@ -582,7 +588,7 @@ scripts/cutover.sh
 
 No automatic fallback release or rollback behavior.
 
-## 13. Final cutover
+## 14. Final cutover
 
 HEC is ready to replace the construction systems when all of the following ordinary uses work from ChatGPT:
 
@@ -613,7 +619,7 @@ Cutover order:
 8. only after StealthEye explicitly approves, delete obsolete services, releases, state directories, storage images, and old construction worktrees;
 9. install the broader HEC forge with the reclaimed disk.
 
-## 14. Expected permanent processes
+## 15. Expected permanent processes
 
 HEC itself requires one permanent service:
 
@@ -632,7 +638,7 @@ Docker
 
 HEC does not claim ownership of them or classify them as HEC subsystems.
 
-## 15. Expected HEC state
+## 16. Expected HEC state
 
 HEC-created persistent state is limited to:
 
@@ -648,7 +654,7 @@ workspaces and repositories
 
 No operation history, receipt database, policy state, verification records, or model reasoning is stored.
 
-## 16. Direct implementation decisions
+## 17. Direct implementation decisions
 
 - Language: Go.
 - Root execution: yes, default and unrestricted.
@@ -669,7 +675,7 @@ No operation history, receipt database, policy state, verification records, or m
 - Logs: journald plus job and terminal output files.
 - Safety, approvals, receipts, evidence, verification framework, rollback, policy, audit: none.
 
-## 17. Research basis
+## 18. Research basis
 
 Primary references:
 
