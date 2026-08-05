@@ -12,16 +12,18 @@ Its purpose is to make ChatGPT exceptionally effective at software engineering, 
 - Root execution is a first-class capability, not an escape from a constrained product.
 - Isolation may be used when technically useful, but no permanent forge container is required.
 - HEC remains standalone. SEZU and Baby may bootstrap the build but are never runtime dependencies.
-- Every interface, schema, result, workflow, observation, and recovery path is designed specifically for ChatGPT.
-- Safety theater, governance theater, mandatory previews, hidden policy, and unnecessary friction are excluded.
-- The system must minimize errors before action and recover cleanly when failures still occur.
-- No ChatGPT turn may be the sole owner of durable work.
-- Retries must not duplicate side effects.
+- Every public interface and result is designed specifically for ChatGPT.
+- Minimum friction is a product requirement.
+- Mandatory preflight, verification, approval, policy, audit, reporting, and rollback machinery are excluded.
+- Direct operations remain direct. HEC adds structure only where it clearly improves ChatGPT's ability to execute or reconnect.
+- Long-running work may be detached, durable, and reconnectable.
+- A failed ChatGPT turn must not kill durable work that already started.
+- HEC reports actual command, process, file, Git, service, browser, and job state without claiming universal correctness.
+- HEC does not automatically retry uncertain external side effects.
 - Current machine state outranks conversational assumptions.
-- Success means verified real-world completion, not merely a successful command exit.
 
 ## Current phase
 
-HEC is undergoing open-ended research, failure modeling, architecture synthesis, and model-interface testing before its v1 contract is frozen.
+HEC is being reduced to the smallest useful root-first vertical slice before broader capabilities are designed.
 
 Nothing beyond this founding brief is canonical yet.
