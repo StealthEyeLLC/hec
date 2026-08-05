@@ -3,26 +3,33 @@ package hec
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 )
 
 type Dispatcher struct {
-	jobsDir        string
-	jobKeysDir     string
-	hecBinaryPath  string
-	systemdRunPath string
-	systemctlPath  string
-	uploadsDir     string
-	artifactsDir   string
-	terminalsDir   string
-	tmuxPath       string
-	tmuxSocket     string
-	tmuxScopeUnit  string
-	infocmpPath    string
-	gitPath        string
-	patchPath      string
-	tarPath        string
-	zstdPath       string
+	jobsDir         string
+	jobKeysDir      string
+	hecBinaryPath   string
+	systemdRunPath  string
+	systemctlPath   string
+	uploadsDir      string
+	artifactsDir    string
+	terminalsDir    string
+	tmuxPath        string
+	tmuxSocket      string
+	tmuxScopeUnit   string
+	infocmpPath     string
+	gitPath         string
+	patchPath       string
+	tarPath         string
+	zstdPath        string
+	capabilityDir   string
+	skillRoots      []skillRoot
+	workspaceRoot   string
+	recipeDir       string
+	commandPath     string
+	operationSchema []byte
 }
 
 func NewDispatcher() *Dispatcher {
@@ -43,6 +50,14 @@ func NewDispatcher() *Dispatcher {
 		patchPath:      "/usr/bin/patch",
 		tarPath:        "/usr/bin/tar",
 		zstdPath:       "/usr/bin/zstd",
+		capabilityDir:  DefaultCapabilityDir,
+		skillRoots: []skillRoot{
+			{Path: DefaultBuiltinSkillRoot, Source: "builtin"},
+			{Path: DefaultOwnerSkillRoot, Source: "owner"},
+		},
+		workspaceRoot: DefaultWorkspaceRoot,
+		recipeDir:     DefaultRecipeDir,
+		commandPath:   os.Getenv("PATH"),
 	}
 }
 
@@ -78,6 +93,14 @@ func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
 		return result
 	case "run":
 		return d.run(ctx, request.Args)
+	case "capabilities":
+		return d.capabilities(ctx, request.Args)
+	case "skill.list":
+		return d.skillList(ctx, request.Args)
+	case "skill.find":
+		return d.skillFind(ctx, request.Args)
+	case "skill.read":
+		return d.skillRead(ctx, request.Args)
 	case "job.start":
 		return d.jobStart(ctx, request.Args, request.IdempotencyKey)
 	case "job.status":

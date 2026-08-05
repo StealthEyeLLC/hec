@@ -27,6 +27,7 @@ install -d -m 0755 \
   /opt/hec \
   "$RELEASES_DIR" \
   /etc/hec \
+  /etc/hec/skills \
   /var/lib/hec \
   /var/cache/hec \
   /run/hec

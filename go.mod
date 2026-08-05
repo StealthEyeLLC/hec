@@ -3,9 +3,12 @@ module github.com/StealthEyeLLC/hec
 go 1.26.2
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/google/jsonschema-go v0.4.2
 	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/openai/tunnel-client v0.0.10
+	golang.org/x/sys v0.40.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -49,7 +52,5 @@ require (
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

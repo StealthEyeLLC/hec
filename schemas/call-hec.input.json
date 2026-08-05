@@ -61,6 +61,200 @@
       "additionalProperties": false
     },
     {
+      "title": "Capabilities",
+      "description": "Search installed HEC operations, capability manifests, skills, recipes, and optionally one named command on PATH using ordinary metadata matching.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "capabilities",
+          "description": "Search installed HEC operations, capability manifests, skills, recipes, and optionally one named command on PATH using ordinary metadata matching."
+        },
+        "args": {
+          "type": "object",
+          "description": "All fields are optional. Omitted limit defaults to 10 and omitted include_missing defaults to false.",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "Optional nonempty metadata query. Omit for a small deterministic installed-capability sample."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Maximum cards to return. Defaults to 10."
+            },
+            "include_missing": {
+              "type": "boolean",
+              "description": "Include manifest and recipe cards whose requirements are missing. Defaults to false."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for capabilities and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Skill list",
+      "description": "List discovered Agent Skills using metadata only.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "skill.list",
+          "description": "List discovered Agent Skills using metadata only."
+        },
+        "args": {
+          "type": "object",
+          "description": "Pagination fields are optional. offset defaults to 0 and limit defaults to 100.",
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Zero-based metadata offset. Defaults to 0."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Maximum metadata entries to return. Defaults to 100."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for skill.list and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Skill find",
+      "description": "Search discovered Agent Skills using their name, description, and location without loading full instructions.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "skill.find",
+          "description": "Search discovered Agent Skills using their name, description, and location without loading full instructions."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "query"
+          ],
+          "description": "Search skill metadata. limit defaults to 10.",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "Nonempty metadata query."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Maximum metadata entries to return. Defaults to 10."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for skill.find and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Skill read",
+      "description": "Read the complete SKILL.md for one discovered Agent Skill.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "skill.read",
+          "description": "Read the complete SKILL.md for one discovered Agent Skill."
+        },
+        "args": {
+          "type": "object",
+          "description": "Supply exactly one exact skill name or discovered absolute location.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^/\\\\]+$",
+              "description": "Exact discovered skill name without path separators."
+            },
+            "location": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^/",
+              "description": "Exact absolute directory of a discovered skill."
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "name"
+              ],
+              "not": {
+                "required": [
+                  "location"
+                ]
+              }
+            },
+            {
+              "required": [
+                "location"
+              ],
+              "not": {
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for skill.read and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "title": "Run",
       "description": "Run one noninteractive process on HEC using either a shell command or a direct argument vector.",
       "type": "object",
@@ -1077,7 +1271,7 @@
     },
     {
       "title": "Terminal signal",
-      "description": "Send one Linux signal to the terminal pane’s foreground process group.",
+      "description": "Send one Linux signal to the terminal pane\u2019s foreground process group.",
       "type": "object",
       "required": [
         "operation",
@@ -1086,7 +1280,7 @@
       "properties": {
         "operation": {
           "const": "terminal.signal",
-          "description": "Send one Linux signal to the terminal pane’s foreground process group."
+          "description": "Send one Linux signal to the terminal pane\u2019s foreground process group."
         },
         "args": {
           "type": "object",

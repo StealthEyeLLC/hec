@@ -91,6 +91,26 @@ func (r Result) Summary() string {
 		if r.ExitCode != nil {
 			return fmt.Sprintf("Run failed with exit code %d.", *r.ExitCode)
 		}
+	case "capabilities":
+		if r.OK {
+			if count, ok := resultInt64(r.Result["count"]); ok {
+				return fmt.Sprintf("Found %d capabilities.", count)
+			}
+		}
+	case "skill.list":
+		if r.OK {
+			return fmt.Sprintf("Listed %d skills.", resultLength(r.Result["skills"]))
+		}
+	case "skill.find":
+		if r.OK {
+			if count, ok := resultInt64(r.Result["count"]); ok {
+				return fmt.Sprintf("Found %d skills.", count)
+			}
+		}
+	case "skill.read":
+		if r.OK {
+			return fmt.Sprintf("Read skill %s.", resultString(r.Result, "name"))
+		}
 	case "job.start":
 		if r.OK && r.Handle != nil {
 			return fmt.Sprintf("Started %s.", *r.Handle)

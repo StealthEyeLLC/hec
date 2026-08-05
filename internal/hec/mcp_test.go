@@ -14,7 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestMCPPublishesSlice4InterfaceAndArtifactResource(t *testing.T) {
+func TestMCPPublishesSlice5InterfaceAndArtifactResource(t *testing.T) {
 	ctx := context.Background()
 	dispatcher := NewDispatcher()
 	dispatcher.uploadsDir = filepath.Join(t.TempDir(), "uploads")
@@ -61,8 +61,8 @@ func TestMCPPublishesSlice4InterfaceAndArtifactResource(t *testing.T) {
 	if !ok {
 		t.Fatalf("input schema oneOf = %#v", schemaObject["oneOf"])
 	}
-	if len(branches) != 34 {
-		t.Fatalf("input schema oneOf branch count = %d, want 34", len(branches))
+	if len(branches) != 38 {
+		t.Fatalf("input schema oneOf branch count = %d, want 38", len(branches))
 	}
 
 	operations := make([]string, 0, len(branches))
@@ -95,9 +95,11 @@ func TestMCPPublishesSlice4InterfaceAndArtifactResource(t *testing.T) {
 	sort.Strings(operations)
 	expectedOperations := []string{
 		"artifact.delete", "artifact.list", "artifact.materialize", "artifact.read", "artifact.return", "artifact.stat",
+		"capabilities",
 		"file.append", "file.list", "file.patch", "file.read", "file.remove", "file.stat", "file.write",
 		"health", "job.forget", "job.list", "job.output", "job.signal", "job.start", "job.status", "job.wait",
-		"run", "terminal.close", "terminal.list", "terminal.open", "terminal.read", "terminal.resize", "terminal.signal", "terminal.write",
+		"run", "skill.find", "skill.list", "skill.read",
+		"terminal.close", "terminal.list", "terminal.open", "terminal.read", "terminal.resize", "terminal.signal", "terminal.write",
 		"upload.abort", "upload.begin", "upload.chunk", "upload.finish", "version",
 	}
 	if !reflect.DeepEqual(operations, expectedOperations) {
@@ -122,19 +124,27 @@ func TestMCPPublishesSlice4InterfaceAndArtifactResource(t *testing.T) {
 	uploadHandle := "upload:0123456789abcdef0123456789abcdef"
 	artifactHandle := "artifact:0123456789abcdef0123456789abcdef"
 	validCases := map[string]map[string]any{
-		"health":                {"operation": "health", "args": map[string]any{}},
-		"version":               {"operation": "version", "args": map[string]any{}},
-		"run":                   {"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}}},
-		"job.start":             {"operation": "job.start", "args": map[string]any{"argv": []any{"/bin/true"}}},
-		"job.status":            {"operation": "job.status", "args": map[string]any{"handle": jobHandle}},
-		"job.output":            {"operation": "job.output", "args": map[string]any{"handle": jobHandle, "stream": "stdout"}},
-		"job.wait":              {"operation": "job.wait", "args": map[string]any{"handle": jobHandle}},
-		"job.signal":            {"operation": "job.signal", "args": map[string]any{"handle": jobHandle, "signal": "SIGTERM"}},
-		"job.list":              {"operation": "job.list", "args": map[string]any{}},
-		"job.forget":            {"operation": "job.forget", "args": map[string]any{"handle": jobHandle}},
-		"terminal.open.default": {"operation": "terminal.open", "args": map[string]any{}},
-		"terminal.open.command": {"operation": "terminal.open", "args": map[string]any{"command": "printf ok"}},
-		"terminal.open.argv":    {"operation": "terminal.open", "args": map[string]any{"argv": []any{"/bin/true"}}},
+		"health":                       {"operation": "health", "args": map[string]any{}},
+		"version":                      {"operation": "version", "args": map[string]any{}},
+		"capabilities.empty":           {"operation": "capabilities", "args": map[string]any{}},
+		"capabilities.query":           {"operation": "capabilities", "args": map[string]any{"query": "persistent terminal", "limit": 10}},
+		"capabilities.include_missing": {"operation": "capabilities", "args": map[string]any{"include_missing": true}},
+		"skill.list.empty":             {"operation": "skill.list", "args": map[string]any{}},
+		"skill.list.page":              {"operation": "skill.list", "args": map[string]any{"offset": 0, "limit": 100}},
+		"skill.find":                   {"operation": "skill.find", "args": map[string]any{"query": "durable jobs", "limit": 10}},
+		"skill.read.name":              {"operation": "skill.read", "args": map[string]any{"name": "hec-operator"}},
+		"skill.read.location":          {"operation": "skill.read", "args": map[string]any{"location": "/opt/hec/current/skills/hec-operator"}},
+		"run":                          {"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}}},
+		"job.start":                    {"operation": "job.start", "args": map[string]any{"argv": []any{"/bin/true"}}},
+		"job.status":                   {"operation": "job.status", "args": map[string]any{"handle": jobHandle}},
+		"job.output":                   {"operation": "job.output", "args": map[string]any{"handle": jobHandle, "stream": "stdout"}},
+		"job.wait":                     {"operation": "job.wait", "args": map[string]any{"handle": jobHandle}},
+		"job.signal":                   {"operation": "job.signal", "args": map[string]any{"handle": jobHandle, "signal": "SIGTERM"}},
+		"job.list":                     {"operation": "job.list", "args": map[string]any{}},
+		"job.forget":                   {"operation": "job.forget", "args": map[string]any{"handle": jobHandle}},
+		"terminal.open.default":        {"operation": "terminal.open", "args": map[string]any{}},
+		"terminal.open.command":        {"operation": "terminal.open", "args": map[string]any{"command": "printf ok"}},
+		"terminal.open.argv":           {"operation": "terminal.open", "args": map[string]any{"argv": []any{"/bin/true"}}},
 		"terminal.open.full": {"operation": "terminal.open", "args": map[string]any{
 			"name": "build shell", "cwd": "/root", "env": map[string]any{"A": "B"}, "unset_env": []any{"OLD"}, "width": 132, "height": 43,
 		}},
@@ -178,6 +188,24 @@ func TestMCPPublishesSlice4InterfaceAndArtifactResource(t *testing.T) {
 
 	invalidCases := map[string]map[string]any{
 		"unknown operation":              {"operation": "unknown", "args": map[string]any{}},
+		"unknown slice6 operation":       {"operation": "browser.open", "args": map[string]any{}},
+		"capabilities empty query":       {"operation": "capabilities", "args": map[string]any{"query": ""}},
+		"capabilities limit zero":        {"operation": "capabilities", "args": map[string]any{"limit": 0}},
+		"capabilities limit high":        {"operation": "capabilities", "args": map[string]any{"limit": 101}},
+		"capabilities unknown":           {"operation": "capabilities", "args": map[string]any{"unexpected": true}},
+		"skill list negative offset":     {"operation": "skill.list", "args": map[string]any{"offset": -1}},
+		"skill list limit zero":          {"operation": "skill.list", "args": map[string]any{"limit": 0}},
+		"skill list limit high":          {"operation": "skill.list", "args": map[string]any{"limit": 1001}},
+		"skill list unknown":             {"operation": "skill.list", "args": map[string]any{"unexpected": true}},
+		"skill find missing query":       {"operation": "skill.find", "args": map[string]any{}},
+		"skill find empty query":         {"operation": "skill.find", "args": map[string]any{"query": ""}},
+		"skill find limit high":          {"operation": "skill.find", "args": map[string]any{"query": "x", "limit": 101}},
+		"skill find unknown":             {"operation": "skill.find", "args": map[string]any{"query": "x", "unexpected": true}},
+		"skill read neither":             {"operation": "skill.read", "args": map[string]any{}},
+		"skill read both":                {"operation": "skill.read", "args": map[string]any{"name": "hec-operator", "location": "/opt/hec/current/skills/hec-operator"}},
+		"skill read relative":            {"operation": "skill.read", "args": map[string]any{"location": "relative/path"}},
+		"skill read slash name":          {"operation": "skill.read", "args": map[string]any{"name": "hec/operator"}},
+		"skill read unknown":             {"operation": "skill.read", "args": map[string]any{"name": "hec-operator", "unexpected": true}},
 		"unknown terminal operation":     {"operation": "terminal.kill", "args": map[string]any{"handle": terminalHandle}},
 		"terminal open both":             {"operation": "terminal.open", "args": map[string]any{"command": "true", "argv": []any{"/bin/true"}}},
 		"terminal open empty argv":       {"operation": "terminal.open", "args": map[string]any{"argv": []any{}}},
