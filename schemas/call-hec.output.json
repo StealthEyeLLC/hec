@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hec.local/schemas/call-hec.output.json",
+  "title": "HEC result",
+  "type": "object",
+  "required": ["ok", "protocol", "operation", "status", "truncated", "result", "resources"],
+  "additionalProperties": true
+}

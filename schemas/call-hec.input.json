@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hec.local/schemas/call-hec.input.json",
+  "title": "HEC call input",
+  "type": "object",
+  "required": ["operation"],
+  "properties": {
+    "operation": {"type": "string", "minLength": 1},
+    "args": {"type": "object", "additionalProperties": true},
+    "idempotency_key": {"type": "string", "minLength": 1, "maxLength": 512}
+  },
+  "additionalProperties": false
+}
