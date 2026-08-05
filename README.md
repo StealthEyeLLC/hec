@@ -1,6 +1,6 @@
 # HEC
 
-**Status:** v1 design frozen; Slices 0 and 1 complete; Slice 2 durable jobs implemented and under release validation.
+**Status:** v1 design frozen; Slices 0 through 3 implemented.
 
 HEC is a standalone, ChatGPT-native, unrestricted root engineering environment designed and operated by ChatGPT and StealthEye.
 
