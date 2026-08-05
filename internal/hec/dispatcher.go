@@ -14,6 +14,11 @@ type Dispatcher struct {
 	systemctlPath  string
 	uploadsDir     string
 	artifactsDir   string
+	terminalsDir   string
+	tmuxPath       string
+	tmuxSocket     string
+	tmuxScopeUnit  string
+	infocmpPath    string
 	gitPath        string
 	patchPath      string
 	tarPath        string
@@ -29,6 +34,11 @@ func NewDispatcher() *Dispatcher {
 		systemctlPath:  "/usr/bin/systemctl",
 		uploadsDir:     UploadRootDir,
 		artifactsDir:   ArtifactRootDir,
+		terminalsDir:   TerminalRootDir,
+		tmuxPath:       "/usr/bin/tmux",
+		tmuxSocket:     TerminalTmuxSocket,
+		tmuxScopeUnit:  "hec-tmux",
+		infocmpPath:    "/usr/bin/infocmp",
 		gitPath:        "/usr/bin/git",
 		patchPath:      "/usr/bin/patch",
 		tarPath:        "/usr/bin/tar",
@@ -82,6 +92,20 @@ func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
 		return d.jobList(ctx, request.Args)
 	case "job.forget":
 		return d.jobForget(ctx, request.Args)
+	case "terminal.open":
+		return d.terminalOpen(ctx, request.Args)
+	case "terminal.list":
+		return d.terminalList(ctx, request.Args)
+	case "terminal.read":
+		return d.terminalRead(ctx, request.Args)
+	case "terminal.write":
+		return d.terminalWrite(ctx, request.Args)
+	case "terminal.resize":
+		return d.terminalResize(ctx, request.Args)
+	case "terminal.signal":
+		return d.terminalSignal(ctx, request.Args)
+	case "terminal.close":
+		return d.terminalClose(ctx, request.Args)
 	case "file.stat":
 		return d.fileStat(ctx, request.Args)
 	case "file.list":

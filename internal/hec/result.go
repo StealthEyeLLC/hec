@@ -140,6 +140,42 @@ func (r Result) Summary() string {
 		if r.OK && r.Handle != nil {
 			return fmt.Sprintf("Forgot %s.", *r.Handle)
 		}
+	case "terminal.open":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Opened %s.", *r.Handle)
+		}
+	case "terminal.list":
+		if r.OK {
+			if count, ok := resultInt64(r.Result["count"]); ok {
+				return fmt.Sprintf("Listed %d terminals.", count)
+			}
+		}
+	case "terminal.read":
+		if r.OK && r.Handle != nil {
+			if resultString(r.Result, "mode") == "screen" {
+				return fmt.Sprintf("Read the current screen from %s.", *r.Handle)
+			}
+			return fmt.Sprintf("Read %d bytes from %s output.", resultRangeLength(r.Result), *r.Handle)
+		}
+	case "terminal.write":
+		if r.OK && r.Handle != nil {
+			count, _ := resultInt64(r.Result["bytes_written"])
+			return fmt.Sprintf("Wrote %d bytes to %s.", count, *r.Handle)
+		}
+	case "terminal.resize":
+		if r.OK && r.Handle != nil {
+			width, _ := resultInt64(r.Result["width"])
+			height, _ := resultInt64(r.Result["height"])
+			return fmt.Sprintf("Resized %s to %dx%d.", *r.Handle, width, height)
+		}
+	case "terminal.signal":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Sent %s to %s.", resultString(r.Result, "signal"), *r.Handle)
+		}
+	case "terminal.close":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Closed %s.", *r.Handle)
+		}
 	case "file.stat":
 		if r.OK {
 			return fmt.Sprintf("Read metadata for %s.", resultString(r.Result, "path"))

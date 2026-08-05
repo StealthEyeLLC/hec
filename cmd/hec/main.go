@@ -51,6 +51,12 @@ func run() int {
 			return 2
 		}
 		return hec.RunJob(os.Args[2])
+	case "terminal-run":
+		if len(os.Args) != 3 {
+			printUsage()
+			return 2
+		}
+		return hec.RunTerminal(os.Args[2])
 	default:
 		printUsage()
 		return 2
@@ -126,4 +132,5 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  hec call <operation> [args-json]")
 	fmt.Fprintln(os.Stderr, "  hec serve")
 	fmt.Fprintln(os.Stderr, "  hec job-run <spec-path>")
+	fmt.Fprintln(os.Stderr, "  hec terminal-run <spec-path>")
 }
