@@ -7,7 +7,7 @@ PATH="$GOROOT/bin:$PATH"
 export GOROOT PATH
 
 VERSION=${HEC_VERSION:-0.0.1}
-COMMIT=$(git -C "$ROOT_DIR" rev-parse --short=12 HEAD 2>/dev/null || printf unknown)
+COMMIT=$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || printf unknown)
 BUILD_DATE=${SOURCE_DATE_EPOCH:+$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y-%m-%dT%H:%M:%SZ)}
 BUILD_DATE=${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 OUT=${HEC_OUTPUT:-$ROOT_DIR/dist/hec}
