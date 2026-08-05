@@ -46,8 +46,11 @@ func run() int {
 		}
 		return 0
 	case "job-run":
-		fmt.Fprintln(os.Stderr, "hec job-run is not implemented in Build Slice 1")
-		return 2
+		if len(os.Args) != 3 {
+			printUsage()
+			return 2
+		}
+		return hec.RunJob(os.Args[2])
 	default:
 		printUsage()
 		return 2
@@ -122,5 +125,5 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  hec version")
 	fmt.Fprintln(os.Stderr, "  hec call <operation> [args-json]")
 	fmt.Fprintln(os.Stderr, "  hec serve")
-	fmt.Fprintln(os.Stderr, "  hec job-run")
+	fmt.Fprintln(os.Stderr, "  hec job-run <spec-path>")
 }

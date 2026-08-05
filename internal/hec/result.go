@@ -5,10 +5,13 @@ import "fmt"
 const ProtocolVersion = "HEC1/1.0.0"
 
 const (
+	StatusStarting  = "starting"
+	StatusRunning   = "running"
 	StatusCompleted = "completed"
 	StatusFailed    = "failed"
 	StatusTimedOut  = "timed_out"
 	StatusCancelled = "cancelled"
+	StatusUnknown   = "unknown"
 )
 
 type CallRequest struct {
@@ -84,6 +87,55 @@ func (r Result) Summary() string {
 		}
 		if r.ExitCode != nil {
 			return fmt.Sprintf("Run failed with exit code %d.", *r.ExitCode)
+		}
+	case "job.start":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Started %s.", *r.Handle)
+		}
+	case "job.status":
+		if r.OK {
+			if handle, ok := r.Result["handle"].(string); ok {
+				if status, ok := r.Result["job_status"].(string); ok {
+					return fmt.Sprintf("%s is %s.", handle, status)
+				}
+			}
+		}
+	case "job.output":
+		if r.OK && r.Handle != nil {
+			offset, _ := resultInt64(r.Result["offset"])
+			next, _ := resultInt64(r.Result["next_offset"])
+			stream, _ := r.Result["stream"].(string)
+			return fmt.Sprintf("Read %d bytes from %s %s.", next-offset, *r.Handle, stream)
+		}
+	case "job.wait":
+		if r.OK && r.Handle != nil {
+			status, _ := r.Result["job_status"].(string)
+			if waitTimedOut, _ := r.Result["wait_timed_out"].(bool); waitTimedOut {
+				return fmt.Sprintf("%s is still %s after the wait timeout.", *r.Handle, status)
+			}
+			if exitCode, ok := resultInt64(r.Result["exit_code"]); ok {
+				return fmt.Sprintf("%s %s with exit code %d.", *r.Handle, status, exitCode)
+			}
+			if signalName, ok := r.Result["signal"].(string); ok {
+				return fmt.Sprintf("%s %s by %s.", *r.Handle, status, signalName)
+			}
+			return fmt.Sprintf("%s is %s.", *r.Handle, status)
+		}
+	case "job.signal":
+		if r.OK && r.Handle != nil {
+			if signalName, ok := r.Result["signal"].(string); ok {
+				return fmt.Sprintf("Sent %s to %s.", signalName, *r.Handle)
+			}
+		}
+	case "job.list":
+		if r.OK {
+			if count, ok := resultInt64(r.Result["count"]); ok {
+				return fmt.Sprintf("Listed %d jobs.", count)
+			}
+		}
+	case "job.forget":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Forgot %s.", *r.Handle)
 		}
 	}
 	if r.Error != nil {

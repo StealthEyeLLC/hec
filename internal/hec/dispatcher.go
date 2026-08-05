@@ -6,10 +6,22 @@ import (
 	"strings"
 )
 
-type Dispatcher struct{}
+type Dispatcher struct {
+	jobsDir        string
+	jobKeysDir     string
+	hecBinaryPath  string
+	systemdRunPath string
+	systemctlPath  string
+}
 
 func NewDispatcher() *Dispatcher {
-	return &Dispatcher{}
+	return &Dispatcher{
+		jobsDir:        JobRootDir,
+		jobKeysDir:     JobKeyDir,
+		hecBinaryPath:  JobBinaryPath,
+		systemdRunPath: "/usr/bin/systemd-run",
+		systemctlPath:  "/usr/bin/systemctl",
+	}
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
@@ -44,6 +56,20 @@ func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
 		return result
 	case "run":
 		return d.run(ctx, request.Args)
+	case "job.start":
+		return d.jobStart(ctx, request.Args, request.IdempotencyKey)
+	case "job.status":
+		return d.jobStatus(ctx, request.Args)
+	case "job.output":
+		return d.jobOutput(ctx, request.Args)
+	case "job.wait":
+		return d.jobWait(ctx, request.Args)
+	case "job.signal":
+		return d.jobSignal(ctx, request.Args)
+	case "job.list":
+		return d.jobList(ctx, request.Args)
+	case "job.forget":
+		return d.jobForget(ctx, request.Args)
 	default:
 		return failedResult(operation, "operation_not_found", fmt.Sprintf("unknown operation %q", operation))
 	}
