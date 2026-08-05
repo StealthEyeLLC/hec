@@ -30,6 +30,9 @@ install -d -m 0755 \
   /var/lib/hec \
   /var/cache/hec \
   /run/hec
+install -d -m 0700 \
+  /var/lib/hec/jobs \
+  /var/lib/hec/job-keys
 
 STAGING_DIR=$(mktemp -d "$RELEASES_DIR/.${VERSION}.staging.XXXXXX")
 install -d -m 0755 \
@@ -82,8 +85,12 @@ credentials_available() (
 
 if credentials_available; then
   systemctl enable hec.service
-  systemctl restart hec.service
-  echo "installed HEC $VERSION and started hec.service"
+  if [[ ${HEC_SKIP_RESTART:-0} == 1 ]]; then
+    echo "installed HEC $VERSION; hec.service restart was intentionally deferred"
+  else
+    systemctl restart hec.service
+    echo "installed HEC $VERSION and started hec.service"
+  fi
 else
   echo "installed HEC $VERSION; hec.service was not started because tunnel credentials are not present"
 fi
