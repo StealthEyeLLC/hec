@@ -3,6 +3,39 @@
   "$id": "https://hec.local/schemas/call-hec.output.json",
   "title": "HEC result",
   "type": "object",
-  "required": ["ok", "protocol", "operation", "status", "truncated", "result", "resources"],
-  "additionalProperties": true
+  "required": [
+    "ok",
+    "protocol",
+    "operation",
+    "status",
+    "handle",
+    "exit_code",
+    "signal",
+    "stdout",
+    "stderr",
+    "stdout_encoding",
+    "stderr_encoding",
+    "truncated",
+    "result",
+    "resources",
+    "error"
+  ],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "protocol": {"type": "string"},
+    "operation": {"type": "string"},
+    "status": {"type": "string"},
+    "handle": {"type": ["string", "null"]},
+    "exit_code": {"type": ["integer", "null"]},
+    "signal": {"type": ["string", "null"]},
+    "stdout": {"type": "string"},
+    "stderr": {"type": "string"},
+    "stdout_encoding": {"enum": ["utf8", "base64"]},
+    "stderr_encoding": {"enum": ["utf8", "base64"]},
+    "truncated": {"type": "boolean"},
+    "result": {"type": "object"},
+    "resources": {"type": "array"},
+    "error": {"type": ["object", "null"]}
+  },
+  "additionalProperties": false
 }

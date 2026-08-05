@@ -2,12 +2,8 @@ package hec
 
 import "fmt"
 
-const (
-	Version         = "0.0.1"
-	ProtocolVersion = "HEC1/1.0.0"
-)
-
 var (
+	Version     = "0.0.1"
 	BuildCommit = "unknown"
 	BuildDate   = "unknown"
 )
