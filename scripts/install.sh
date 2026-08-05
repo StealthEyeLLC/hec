@@ -32,7 +32,8 @@ install -d -m 0755 \
   /run/hec
 install -d -m 0700 \
   /var/lib/hec/jobs \
-  /var/lib/hec/job-keys
+  /var/lib/hec/job-keys \
+  /var/lib/hec/terminals
 
 STAGING_DIR=$(mktemp -d "$RELEASES_DIR/.${VERSION}.staging.XXXXXX")
 install -d -m 0755 \
