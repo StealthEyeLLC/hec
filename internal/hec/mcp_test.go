@@ -143,6 +143,7 @@ func TestMCPPublishesOnlyCallHEC(t *testing.T) {
 		{name: "job wait missing handle", input: map[string]any{"operation": "job.wait", "args": map[string]any{}}, valid: false},
 		{name: "job wait negative timeout", input: map[string]any{"operation": "job.wait", "args": map[string]any{"handle": validHandle, "timeout_ms": -1}}, valid: false},
 		{name: "job signal missing signal", input: map[string]any{"operation": "job.signal", "args": map[string]any{"handle": validHandle}}, valid: false},
+		{name: "job signal invalid signal", input: map[string]any{"operation": "job.signal", "args": map[string]any{"handle": validHandle, "signal": "SIGNOPE"}}, valid: false},
 		{name: "job list nonempty args", input: map[string]any{"operation": "job.list", "args": map[string]any{"unexpected": true}}, valid: false},
 		{name: "job forget missing handle", input: map[string]any{"operation": "job.forget", "args": map[string]any{}}, valid: false},
 		{name: "unknown top-level field", input: map[string]any{"operation": "health", "args": map[string]any{}, "unexpected": true}, valid: false},

@@ -528,8 +528,38 @@
             },
             "signal": {
               "type": "string",
-              "minLength": 1,
-              "description": "Linux signal name such as SIGTERM."
+              "enum": [
+                "SIGHUP",
+                "SIGINT",
+                "SIGQUIT",
+                "SIGILL",
+                "SIGTRAP",
+                "SIGABRT",
+                "SIGBUS",
+                "SIGFPE",
+                "SIGKILL",
+                "SIGUSR1",
+                "SIGSEGV",
+                "SIGUSR2",
+                "SIGPIPE",
+                "SIGALRM",
+                "SIGTERM",
+                "SIGCHLD",
+                "SIGCONT",
+                "SIGSTOP",
+                "SIGTSTP",
+                "SIGTTIN",
+                "SIGTTOU",
+                "SIGURG",
+                "SIGXCPU",
+                "SIGXFSZ",
+                "SIGVTALRM",
+                "SIGPROF",
+                "SIGWINCH",
+                "SIGIO",
+                "SIGSYS"
+              ],
+              "description": "Linux signal name to send to the running job process group."
             }
           },
           "additionalProperties": false
