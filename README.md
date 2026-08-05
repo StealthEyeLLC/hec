@@ -1,10 +1,10 @@
 # HEC
 
-**Status:** research and architecture phase; not frozen.
+**Status:** complete v1 design draft; not frozen until approved by StealthEye.
 
 HEC is a standalone, ChatGPT-native, unrestricted root engineering environment designed and operated by ChatGPT and StealthEye.
 
-Its purpose is to give ChatGPT the broadest practical software-engineering, DevOps, systems, browser, data, document, media, cloud, networking, debugging, build, deployment, and infrastructure capability on an owner-controlled Linux host with the least possible friction and internal machinery.
+Its purpose is to give ChatGPT the broadest practical software-engineering, DevOps, systems, browser, data, document, media, cloud, networking, debugging, build, deployment, container, and infrastructure capability on an owner-controlled Linux host with the least possible friction and internal machinery.
 
 ## Core principle
 
@@ -53,6 +53,33 @@ HEC does not add:
 
 ChatGPT and StealthEye may inspect, test, verify, commit, snapshot, branch, or back up work whenever the actual task calls for it. Those are ordinary operations, not compulsory HEC subsystems.
 
+## v1 design
+
+- [HEC v1 architecture and protocol](docs/HEC_V1_DESIGN.md)
+- [HEC v1 capability forge](docs/HEC_V1_FORGE.md)
+- [HEC v1 construction and cutover plan](docs/HEC_V1_BUILD_PLAN.md)
+
+The decisive architecture is:
+
+```text
+ChatGPT
+   |
+   | OpenAI Secure MCP Tunnel
+   v
+one root hec.service
+   |
+   | embedded in-memory MCP
+   v
+one call_hec tool
+   |
+   +-- unrestricted exec
+   +-- systemd durable jobs
+   +-- tmux terminals
+   +-- files, uploads, and returned artifacts
+   +-- skills and capability discovery
+   +-- every installed native CLI
+```
+
 ## Design test
 
 Every proposed component must answer at least one question:
@@ -62,9 +89,3 @@ Every proposed component must answer at least one question:
 3. Is it strictly necessary for the ChatGPT connection or for work to survive a disconnected turn?
 
 If the answer to all three is no, it does not belong in HEC.
-
-## Current phase
-
-HEC is being designed as a capability-complete root workstation and ChatGPT interface with the smallest implementation that can expose and operate that capability reliably enough for ordinary use.
-
-Nothing beyond this founding contract is frozen yet.
