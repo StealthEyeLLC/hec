@@ -1,85 +1,45 @@
-# HEC Reliability Contract — Draft
+# HEC Minimal Recovery Contract — Draft
 
 **Status:** unfrozen research draft.
 
-HEC is designed on the assumption that any ChatGPT reasoning turn, mobile client session, MCP connection, gateway process, daemon process, browser process, terminal, job, network request, or host boot may fail or disappear at an inconvenient moment.
+This contract exists only to prevent a failed ChatGPT turn or MCP connection from killing or duplicating work that HEC already started. It is not a verification framework, workflow engine, audit system, or reliability platform.
 
-The goal is not the impossible promise that errors never occur. The goal is that failures are detected, represented truthfully, and recover without lost work, duplicated effects, or reconstruction from chat history.
+## Rules
 
-## Core invariants
+1. **Direct work stays direct.**
+   Reads, file operations, Git operations, and short commands do not require task capsules, acceptance criteria, preflight phases, or verification hooks.
 
-1. **No ChatGPT turn owns durable work.**
-   Once HEC accepts work, the work and its output state belong to HEC until completion, cancellation, or explicit deletion.
+2. **Long work can be detached.**
+   A caller may start a durable job and receive a handle as soon as HEC accepts it.
 
-2. **Every mutating request is identifiable.**
-   A mutating request has a stable task ID, step ID, and idempotency key.
+3. **Durable jobs outlive ChatGPT and the gateway.**
+   The native process manager owns the process. HEC preserves the handle and output location needed to reconnect.
 
-3. **Retries do not blindly repeat effects.**
-   Repeating the same accepted request returns, resumes, or reconciles the original operation instead of starting a duplicate.
+4. **Output is readable by offset.**
+   A later ChatGPT turn can inspect job status and continue reading stdout and stderr without replaying the command.
 
-4. **Unknown effects are represented as unknown.**
-   If HEC cannot prove whether an external or interrupted side effect occurred, it does not report success, failure, or safe retry until it reconciles actual state.
+5. **Job creation may use an idempotency key.**
+   Repeating the same job-start request with the same key returns the existing handle instead of launching a duplicate.
 
-5. **State is committed before and after side effects.**
-   HEC durably records accepted intent before dispatch and records observed outcome after execution or reconciliation.
+6. **HEC does not automatically retry uncertain external side effects.**
+   It reports the known process state and leaves the next action to ChatGPT and StealthEye.
 
-6. **Current machine state outranks history.**
-   Resume logic inspects Git, files, services, processes, systemd units, jobs, terminals, browsers, and artifacts instead of assuming the last response was delivered.
+7. **HEC reports facts, not universal proof.**
+   Exit code, signal, output, file state, Git state, service state, and other observations are returned directly. Extra checks are run only when the caller or a specific skill requests them.
 
-7. **Outputs are durable before they are reported.**
-   Job output, diagnostics, and produced artifacts are persisted before a tool response claims they exist.
+8. **Recovery state remains tiny.**
+   HEC stores only the metadata needed to find a durable job, read its output, and return its current state. It does not maintain a general task ledger or model reasoning history.
 
-8. **File publication is atomic where the filesystem permits.**
-   HEC writes a complete replacement, synchronizes it when durability is required, and atomically publishes it. Expected pre-change hashes prevent editing stale content.
+9. **HEC remains standalone.**
+   SEZU and Baby may construct HEC but are never runtime dependencies.
 
-9. **No blind retries of open-world side effects.**
-   Network, cloud, email, deployment, payment, publication, and other external effects require an idempotency mechanism or a state probe before retry.
+## Required initial test
 
-10. **Success requires verification.**
-    A zero exit code is evidence, not universal proof. Skills and flows define the observations or probes that establish real completion.
+1. Start a long-running durable command.
+2. Disconnect or kill the MCP gateway.
+3. Let the command continue.
+4. Reconnect from a fresh ChatGPT turn.
+5. Retrieve the same handle, status, and output.
+6. Repeat the original start request with the same idempotency key and prove that no second process starts.
 
-11. **Every multi-step task has a public operational capsule.**
-    The capsule stores the goal, acceptance criteria, completed and active steps, current verified facts, blockers, produced references, and next safe action. It never attempts to store private model reasoning.
-
-12. **A fresh ChatGPT context can resume.**
-    HEC can compile a compact resume packet from the task capsule and live machine state without replaying the complete conversation.
-
-13. **Simple work remains simple.**
-    Direct reads and short commands do not require a heavyweight workflow. Durability machinery appears only where interruption or composition requires it.
-
-14. **HEC remains standalone.**
-    SEZU and Baby may be used to construct HEC but are never HEC runtime dependencies.
-
-## Required failure classes
-
-HEC design and tests must cover at least:
-
-- ChatGPT reasoning failure or response interruption;
-- mobile or web client closure;
-- lost or duplicated MCP requests;
-- tunnel and gateway disconnects;
-- gateway or root-daemon restart;
-- host reboot;
-- process, terminal, browser, and service crash;
-- timeout, cancellation, signal, and out-of-memory termination;
-- disk-full and inode-full conditions;
-- output truncation and binary output;
-- partial upload or transfer;
-- stale file observations and concurrent edits;
-- Git conflicts and dirty working trees;
-- package-manager locks and interrupted package transactions;
-- network loss, rate limits, expired credentials, and provider outages;
-- duplicate retries after an unknown response state;
-- schema mismatch and stale MCP action definitions;
-- verification failure after apparent command success;
-- unexpected failures not known in advance.
-
-## Reliability target
-
-The primary target is **zero unrecoverable task-state loss after HEC accepts a request**.
-
-A secondary target is minimizing the frequency of failures through automatic preflight checks, precise schemas, truthful tool descriptions, deterministic state resolution, and closed-loop verification.
-
-## Proof strategy
-
-HEC must include fault-injection and model-interface tests that deliberately terminate clients and processes at every important transition, replay requests, fill storage, create concurrency conflicts, corrupt or truncate test outputs, and verify that the resulting state is recoverable and truthfully represented.
+Anything beyond this test must justify its implementation cost with a real failure observed during ordinary use.
