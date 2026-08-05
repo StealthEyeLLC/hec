@@ -146,6 +146,26 @@ func TestUploadPromotionUsesArtifactStorage(t *testing.T) {
 	if _, err := os.Stat(uploadDirectory(dispatcher.uploadsDir, uploadID)); !os.IsNotExist(err) {
 		t.Fatalf("completed upload remains: %v", err)
 	}
+	metadata, err := loadArtifactMetadata(dispatcher.artifactsDir, artifactID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.SourceUploadHandle != handle {
+		t.Fatalf("source upload handle = %q, want %q", metadata.SourceUploadHandle, handle)
+	}
+	replayed := dispatchForTest(t, dispatcher, "upload.finish", map[string]any{
+		"handle": handle, "artifact": true, "media_type": "text/plain",
+	})
+	replayedHandle := artifactHandleFromResult(t, replayed)
+	if replayedHandle != artifactHandle || len(replayed.Resources) != 1 {
+		t.Fatalf("replayed finish = %#v resources=%#v", replayed.Result, replayed.Resources)
+	}
+	listed := dispatchForTest(t, dispatcher, "artifact.list", map[string]any{})
+	requireOK(t, listed)
+	artifacts, ok := listed.Result["artifacts"].([]ArtifactMetadata)
+	if !ok || len(artifacts) != 1 {
+		t.Fatalf("replayed finish created duplicate artifacts: %#v", listed.Result)
+	}
 }
 
 func TestDeterministicDirectoryArtifact(t *testing.T) {

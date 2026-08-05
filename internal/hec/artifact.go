@@ -17,13 +17,14 @@ import (
 )
 
 type ArtifactMetadata struct {
-	ID         string `json:"id"`
-	Handle     string `json:"handle"`
-	Filename   string `json:"filename"`
-	MediaType  string `json:"media_type"`
-	SourceKind string `json:"source_kind"`
-	Size       int64  `json:"size"`
-	URI        string `json:"uri"`
+	ID                 string `json:"id"`
+	Handle             string `json:"handle"`
+	Filename           string `json:"filename"`
+	MediaType          string `json:"media_type"`
+	SourceKind         string `json:"source_kind"`
+	SourceUploadHandle string `json:"source_upload_handle,omitempty"`
+	Size               int64  `json:"size"`
+	URI                string `json:"uri"`
 }
 
 type artifactReturnArgs struct {
@@ -80,6 +81,42 @@ func loadArtifactMetadata(root, id string) (ArtifactMetadata, error) {
 	return metadata, nil
 }
 
+func resourceDescriptorForArtifact(metadata ArtifactMetadata) ResourceDescriptor {
+	return ResourceDescriptor{
+		URI:       metadata.URI,
+		Name:      metadata.Filename,
+		MediaType: metadata.MediaType,
+		Size:      metadata.Size,
+	}
+}
+
+func findArtifactByUploadHandle(root, uploadHandle string) (ArtifactMetadata, bool, error) {
+	var empty ArtifactMetadata
+	entries, err := os.ReadDir(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return empty, false, nil
+	}
+	if err != nil {
+		return empty, false, err
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".tmp-") {
+			continue
+		}
+		if _, err := parseTypedHandle("artifact:"+entry.Name(), "artifact"); err != nil {
+			continue
+		}
+		metadata, err := loadArtifactMetadata(root, entry.Name())
+		if err != nil {
+			return empty, false, err
+		}
+		if metadata.SourceUploadHandle == uploadHandle {
+			return metadata, true, nil
+		}
+	}
+	return empty, false, nil
+}
+
 func artifactMediaType(filename, supplied string) string {
 	if supplied != "" {
 		return supplied
@@ -111,7 +148,7 @@ func newArtifactDirectory(root string) (id, tempDir, finalDir string, err error)
 	return "", "", "", errors.New("could not allocate artifact handle")
 }
 
-func completeArtifact(tempDir, finalDir, id, filename, mediaType, sourceKind string) (ArtifactMetadata, ResourceDescriptor, error) {
+func completeArtifact(tempDir, finalDir, id, filename, mediaType, sourceKind, sourceUploadHandle string) (ArtifactMetadata, ResourceDescriptor, error) {
 	var metadata ArtifactMetadata
 	var descriptor ResourceDescriptor
 	payloadInfo, err := os.Stat(filepath.Join(tempDir, "payload"))
@@ -119,13 +156,14 @@ func completeArtifact(tempDir, finalDir, id, filename, mediaType, sourceKind str
 		return metadata, descriptor, err
 	}
 	metadata = ArtifactMetadata{
-		ID:         id,
-		Handle:     "artifact:" + id,
-		Filename:   filename,
-		MediaType:  mediaType,
-		SourceKind: sourceKind,
-		Size:       payloadInfo.Size(),
-		URI:        "hec://artifact/" + id,
+		ID:                 id,
+		Handle:             "artifact:" + id,
+		Filename:           filename,
+		MediaType:          mediaType,
+		SourceKind:         sourceKind,
+		SourceUploadHandle: sourceUploadHandle,
+		Size:               payloadInfo.Size(),
+		URI:                "hec://artifact/" + id,
 	}
 	if err := writeJSONAtomic(filepath.Join(tempDir, "metadata.json"), metadata, 0600); err != nil {
 		return ArtifactMetadata{}, descriptor, err
@@ -133,16 +171,11 @@ func completeArtifact(tempDir, finalDir, id, filename, mediaType, sourceKind str
 	if err := os.Rename(tempDir, finalDir); err != nil {
 		return ArtifactMetadata{}, descriptor, err
 	}
-	descriptor = ResourceDescriptor{
-		URI:       metadata.URI,
-		Name:      metadata.Filename,
-		MediaType: metadata.MediaType,
-		Size:      metadata.Size,
-	}
+	descriptor = resourceDescriptorForArtifact(metadata)
 	return metadata, descriptor, nil
 }
 
-func (d *Dispatcher) createFileArtifact(_ context.Context, source, name, mediaType string) (ArtifactMetadata, ResourceDescriptor, error) {
+func (d *Dispatcher) createFileArtifact(_ context.Context, source, name, mediaType, sourceUploadHandle string) (ArtifactMetadata, ResourceDescriptor, error) {
 	var emptyMetadata ArtifactMetadata
 	var emptyDescriptor ResourceDescriptor
 	if err := validateBasename(name, "name"); err != nil {
@@ -186,7 +219,7 @@ func (d *Dispatcher) createFileArtifact(_ context.Context, source, name, mediaTy
 	if err := payload.Close(); err != nil {
 		return emptyMetadata, emptyDescriptor, err
 	}
-	metadata, descriptor, err := completeArtifact(tempDir, finalDir, id, name, artifactMediaType(name, mediaType), "file")
+	metadata, descriptor, err := completeArtifact(tempDir, finalDir, id, name, artifactMediaType(name, mediaType), "file", sourceUploadHandle)
 	if err != nil {
 		return emptyMetadata, emptyDescriptor, err
 	}
@@ -276,7 +309,7 @@ func (d *Dispatcher) createDirectoryArtifact(ctx context.Context, source, name, 
 	if mediaType == "" {
 		mediaType = "application/zstd"
 	}
-	metadata, descriptor, err := completeArtifact(tempDir, finalDir, id, name, mediaType, "directory")
+	metadata, descriptor, err := completeArtifact(tempDir, finalDir, id, name, mediaType, "directory", "")
 	if err != nil {
 		return emptyMetadata, emptyDescriptor, err
 	}
@@ -313,7 +346,7 @@ func (d *Dispatcher) artifactReturn(ctx context.Context, raw map[string]any) Res
 		if name == "" {
 			name = filepath.Base(path)
 		}
-		metadata, descriptor, err = d.createFileArtifact(ctx, path, name, args.MediaType)
+		metadata, descriptor, err = d.createFileArtifact(ctx, path, name, args.MediaType, "")
 	case info.IsDir():
 		if name == "" {
 			name = filepath.Base(path) + ".tar.zst"

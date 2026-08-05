@@ -254,6 +254,32 @@ func (d *Dispatcher) uploadChunk(_ context.Context, raw map[string]any) Result {
 	return result
 }
 
+func uploadArtifactCompletionResult(uploadHandle string, metadata ArtifactMetadata) Result {
+	handle := metadata.Handle
+	result := newResult("upload.finish")
+	result.OK = true
+	result.Handle = &handle
+	result.Result = map[string]any{
+		"upload_handle": uploadHandle,
+		"handle":        handle,
+		"metadata":      metadata,
+		"uri":           metadata.URI,
+	}
+	result.Resources = []any{resourceDescriptorForArtifact(metadata)}
+	return result
+}
+
+func (d *Dispatcher) replayUploadArtifactCompletion(uploadHandle string) (Result, bool) {
+	metadata, found, err := findArtifactByUploadHandle(d.artifactsDir, uploadHandle)
+	if err != nil {
+		return failedResult("upload.finish", "artifact_failed", err.Error()), true
+	}
+	if !found {
+		return Result{}, false
+	}
+	return uploadArtifactCompletionResult(uploadHandle, metadata), true
+}
+
 func verifyUpload(file *os.File, metadata uploadMetadata) error {
 	info, err := file.Stat()
 	if err != nil {
@@ -315,6 +341,11 @@ func (d *Dispatcher) uploadFinish(ctx context.Context, raw map[string]any) Resul
 	dataPath := uploadDataPath(d.uploadsDir, id)
 	file, err := os.OpenFile(dataPath, os.O_RDWR, 0)
 	if errors.Is(err, os.ErrNotExist) {
+		if artifactTarget {
+			if replayed, found := d.replayUploadArtifactCompletion(args.Handle); found {
+				return replayed
+			}
+		}
 		return failedResult("upload.finish", "not_found", "upload not found")
 	}
 	if err != nil {
@@ -326,6 +357,11 @@ func (d *Dispatcher) uploadFinish(ctx context.Context, raw map[string]any) Resul
 	}
 	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
 	metadata, err := loadUploadMetadata(d.uploadsDir, id)
+	if errors.Is(err, os.ErrNotExist) && artifactTarget {
+		if replayed, found := d.replayUploadArtifactCompletion(args.Handle); found {
+			return replayed
+		}
+	}
 	if err != nil {
 		return failedResult("upload.finish", "upload_failed", err.Error())
 	}
@@ -359,25 +395,14 @@ func (d *Dispatcher) uploadFinish(ctx context.Context, raw map[string]any) Resul
 	if name == "" {
 		name = metadata.Filename
 	}
-	artifactMetadata, descriptor, err := d.createFileArtifact(ctx, dataPath, name, args.MediaType)
+	artifactMetadata, _, err := d.createFileArtifact(ctx, dataPath, name, args.MediaType, args.Handle)
 	if err != nil {
 		return failedResult("upload.finish", "artifact_failed", err.Error())
 	}
 	if err := os.RemoveAll(uploadDirectory(d.uploadsDir, id)); err != nil {
 		return failedResult("upload.finish", "upload_failed", err.Error())
 	}
-	artifactHandle := artifactMetadata.Handle
-	result := newResult("upload.finish")
-	result.OK = true
-	result.Handle = &artifactHandle
-	result.Result = map[string]any{
-		"upload_handle": args.Handle,
-		"handle":        artifactHandle,
-		"metadata":      artifactMetadata,
-		"uri":           artifactMetadata.URI,
-	}
-	result.Resources = []any{descriptor}
-	return result
+	return uploadArtifactCompletionResult(args.Handle, artifactMetadata)
 }
 
 func (d *Dispatcher) uploadAbort(_ context.Context, raw map[string]any) Result {
