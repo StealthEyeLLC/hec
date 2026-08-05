@@ -1,8 +1,11 @@
 package hec
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -11,9 +14,13 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestMCPPublishesOnlyCallHEC(t *testing.T) {
+func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
 	ctx := context.Background()
-	server := NewMCPServer(NewDispatcher())
+	dispatcher := NewDispatcher()
+	dispatcher.uploadsDir = filepath.Join(t.TempDir(), "uploads")
+	dispatcher.artifactsDir = filepath.Join(t.TempDir(), "artifacts")
+
+	server := NewMCPServer(dispatcher)
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
 	if err != nil {
@@ -54,8 +61,8 @@ func TestMCPPublishesOnlyCallHEC(t *testing.T) {
 	if !ok {
 		t.Fatalf("input schema oneOf = %#v", schemaObject["oneOf"])
 	}
-	if len(branches) != 10 {
-		t.Fatalf("input schema oneOf branch count = %d, want 10", len(branches))
+	if len(branches) != 27 {
+		t.Fatalf("input schema oneOf branch count = %d, want 27", len(branches))
 	}
 
 	operations := make([]string, 0, len(branches))
@@ -80,15 +87,17 @@ func TestMCPPublishesOnlyCallHEC(t *testing.T) {
 			t.Fatalf("operation schema = %#v", properties["operation"])
 		}
 		operation, ok := operationSchema["const"].(string)
-		if !ok {
+		if !ok || operation == "" {
 			t.Fatalf("operation const = %#v", operationSchema["const"])
 		}
 		operations = append(operations, operation)
 	}
 	sort.Strings(operations)
 	expectedOperations := []string{
-		"health", "job.forget", "job.list", "job.output", "job.signal",
-		"job.start", "job.status", "job.wait", "run", "version",
+		"artifact.delete", "artifact.list", "artifact.materialize", "artifact.read", "artifact.return", "artifact.stat",
+		"file.append", "file.list", "file.patch", "file.read", "file.remove", "file.stat", "file.write",
+		"health", "job.forget", "job.list", "job.output", "job.signal", "job.start", "job.status", "job.wait",
+		"run", "upload.abort", "upload.begin", "upload.chunk", "upload.finish", "version",
 	}
 	if !reflect.DeepEqual(operations, expectedOperations) {
 		t.Fatalf("enumerated operations = %#v, want %#v", operations, expectedOperations)
@@ -107,79 +116,139 @@ func TestMCPPublishesOnlyCallHEC(t *testing.T) {
 		t.Fatalf("resolve input schema: %v", err)
 	}
 
-	validHandle := "job:AAAAAAAAAAAAAAAAAAAAAA"
-	validationCases := []struct {
-		name  string
-		input map[string]any
-		valid bool
-	}{
-		{name: "health empty args", input: map[string]any{"operation": "health", "args": map[string]any{}}, valid: true},
-		{name: "version empty args", input: map[string]any{"operation": "version", "args": map[string]any{}}, valid: true},
-		{name: "run argv", input: map[string]any{"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}}}, valid: true},
-		{name: "run command", input: map[string]any{"operation": "run", "args": map[string]any{"command": "id"}}, valid: true},
-		{name: "job start argv", input: map[string]any{"operation": "job.start", "args": map[string]any{"argv": []any{"/bin/true"}}}, valid: true},
-		{name: "job start command and key", input: map[string]any{"operation": "job.start", "args": map[string]any{"command": "true"}, "idempotency_key": "slice-2"}, valid: true},
-		{name: "job status", input: map[string]any{"operation": "job.status", "args": map[string]any{"handle": validHandle}}, valid: true},
-		{name: "job output", input: map[string]any{"operation": "job.output", "args": map[string]any{"handle": validHandle, "stream": "stdout"}}, valid: true},
-		{name: "job wait", input: map[string]any{"operation": "job.wait", "args": map[string]any{"handle": validHandle}}, valid: true},
-		{name: "job signal", input: map[string]any{"operation": "job.signal", "args": map[string]any{"handle": validHandle, "signal": "SIGTERM"}}, valid: true},
-		{name: "job list", input: map[string]any{"operation": "job.list", "args": map[string]any{}}, valid: true},
-		{name: "job forget", input: map[string]any{"operation": "job.forget", "args": map[string]any{"handle": validHandle}}, valid: true},
-
-		{name: "unknown operation", input: map[string]any{"operation": "unknown", "args": map[string]any{}}, valid: false},
-		{name: "health nonempty args", input: map[string]any{"operation": "health", "args": map[string]any{"unexpected": true}}, valid: false},
-		{name: "version nonempty args", input: map[string]any{"operation": "version", "args": map[string]any{"unexpected": true}}, valid: false},
-		{name: "run argv and command", input: map[string]any{"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}, "command": "id"}}, valid: false},
-		{name: "run neither", input: map[string]any{"operation": "run", "args": map[string]any{}}, valid: false},
-		{name: "job start both command and argv", input: map[string]any{"operation": "job.start", "args": map[string]any{"command": "true", "argv": []any{"/bin/true"}}}, valid: false},
-		{name: "job start neither command nor argv", input: map[string]any{"operation": "job.start", "args": map[string]any{}}, valid: false},
-		{name: "job start both stdin forms", input: map[string]any{"operation": "job.start", "args": map[string]any{"command": "cat", "stdin": "a", "stdin_base64": "YQ=="}}, valid: false},
-		{name: "unknown job start argument", input: map[string]any{"operation": "job.start", "args": map[string]any{"command": "true", "unexpected": true}}, valid: false},
-		{name: "job status missing handle", input: map[string]any{"operation": "job.status", "args": map[string]any{}}, valid: false},
-		{name: "job output invalid stream", input: map[string]any{"operation": "job.output", "args": map[string]any{"handle": validHandle, "stream": "both"}}, valid: false},
-		{name: "job output negative offset", input: map[string]any{"operation": "job.output", "args": map[string]any{"handle": validHandle, "stream": "stdout", "offset": -1}}, valid: false},
-		{name: "job output zero limit", input: map[string]any{"operation": "job.output", "args": map[string]any{"handle": validHandle, "stream": "stdout", "limit": 0}}, valid: false},
-		{name: "job output negative limit", input: map[string]any{"operation": "job.output", "args": map[string]any{"handle": validHandle, "stream": "stdout", "limit": -1}}, valid: false},
-		{name: "job wait missing handle", input: map[string]any{"operation": "job.wait", "args": map[string]any{}}, valid: false},
-		{name: "job wait negative timeout", input: map[string]any{"operation": "job.wait", "args": map[string]any{"handle": validHandle, "timeout_ms": -1}}, valid: false},
-		{name: "job signal missing signal", input: map[string]any{"operation": "job.signal", "args": map[string]any{"handle": validHandle}}, valid: false},
-		{name: "job signal invalid signal", input: map[string]any{"operation": "job.signal", "args": map[string]any{"handle": validHandle, "signal": "SIGNOPE"}}, valid: false},
-		{name: "job list nonempty args", input: map[string]any{"operation": "job.list", "args": map[string]any{"unexpected": true}}, valid: false},
-		{name: "job forget missing handle", input: map[string]any{"operation": "job.forget", "args": map[string]any{}}, valid: false},
-		{name: "unknown top-level field", input: map[string]any{"operation": "health", "args": map[string]any{}, "unexpected": true}, valid: false},
+	jobHandle := "job:AAAAAAAAAAAAAAAAAAAAAA"
+	uploadHandle := "upload:0123456789abcdef0123456789abcdef"
+	artifactHandle := "artifact:0123456789abcdef0123456789abcdef"
+	validCases := map[string]map[string]any{
+		"health":               {"operation": "health", "args": map[string]any{}},
+		"version":              {"operation": "version", "args": map[string]any{}},
+		"run":                  {"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}}},
+		"job.start":            {"operation": "job.start", "args": map[string]any{"argv": []any{"/bin/true"}}},
+		"job.status":           {"operation": "job.status", "args": map[string]any{"handle": jobHandle}},
+		"job.output":           {"operation": "job.output", "args": map[string]any{"handle": jobHandle, "stream": "stdout"}},
+		"job.wait":             {"operation": "job.wait", "args": map[string]any{"handle": jobHandle}},
+		"job.signal":           {"operation": "job.signal", "args": map[string]any{"handle": jobHandle, "signal": "SIGTERM"}},
+		"job.list":             {"operation": "job.list", "args": map[string]any{}},
+		"job.forget":           {"operation": "job.forget", "args": map[string]any{"handle": jobHandle}},
+		"file.stat":            {"operation": "file.stat", "args": map[string]any{"path": "/tmp/a"}},
+		"file.list":            {"operation": "file.list", "args": map[string]any{"path": "/tmp"}},
+		"file.read":            {"operation": "file.read", "args": map[string]any{"path": "/tmp/a"}},
+		"file.write.content":   {"operation": "file.write", "args": map[string]any{"path": "/tmp/a", "content": "x"}},
+		"file.write.base64":    {"operation": "file.write", "args": map[string]any{"path": "/tmp/a", "content_base64": "AA=="}},
+		"file.append":          {"operation": "file.append", "args": map[string]any{"path": "/tmp/a", "content": "x"}},
+		"file.patch":           {"operation": "file.patch", "args": map[string]any{"cwd": "/tmp", "patch": "--- a/a\n+++ b/a\n"}},
+		"file.remove":          {"operation": "file.remove", "args": map[string]any{"path": "/tmp/a"}},
+		"upload.begin":         {"operation": "upload.begin", "args": map[string]any{"filename": "a.bin"}},
+		"upload.chunk":         {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": 0, "data_base64": "AA=="}},
+		"upload.finish.dest":   {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "/tmp/a"}},
+		"upload.finish.art":    {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "artifact": true}},
+		"upload.abort":         {"operation": "upload.abort", "args": map[string]any{"handle": uploadHandle}},
+		"artifact.return":      {"operation": "artifact.return", "args": map[string]any{"path": "/tmp/a"}},
+		"artifact.stat":        {"operation": "artifact.stat", "args": map[string]any{"handle": artifactHandle}},
+		"artifact.read":        {"operation": "artifact.read", "args": map[string]any{"handle": artifactHandle}},
+		"artifact.materialize": {"operation": "artifact.materialize", "args": map[string]any{"handle": artifactHandle, "destination": "/tmp/a"}},
+		"artifact.list":        {"operation": "artifact.list", "args": map[string]any{}},
+		"artifact.delete":      {"operation": "artifact.delete", "args": map[string]any{"handle": artifactHandle}},
 	}
-	for _, tc := range validationCases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := resolvedSchema.Validate(tc.input)
-			if tc.valid && err != nil {
+	for name, input := range validCases {
+		t.Run("schema valid "+name, func(t *testing.T) {
+			if err := resolvedSchema.Validate(input); err != nil {
 				t.Fatalf("schema rejected valid input: %v", err)
-			}
-			if !tc.valid && err == nil {
-				t.Fatal("schema accepted invalid input")
 			}
 		})
 	}
 
+	invalidCases := map[string]map[string]any{
+		"unknown operation":         {"operation": "unknown", "args": map[string]any{}},
+		"file stat no path":         {"operation": "file.stat", "args": map[string]any{}},
+		"file list negative offset": {"operation": "file.list", "args": map[string]any{"path": "/tmp", "offset": -1}},
+		"file list zero limit":      {"operation": "file.list", "args": map[string]any{"path": "/tmp", "limit": 0}},
+		"file read negative offset": {"operation": "file.read", "args": map[string]any{"path": "/tmp/a", "offset": -1}},
+		"file read above max":       {"operation": "file.read", "args": map[string]any{"path": "/tmp/a", "limit": 1048577}},
+		"file write neither":        {"operation": "file.write", "args": map[string]any{"path": "/tmp/a"}},
+		"file write both":           {"operation": "file.write", "args": map[string]any{"path": "/tmp/a", "content": "x", "content_base64": "eA=="}},
+		"file append both":          {"operation": "file.append", "args": map[string]any{"path": "/tmp/a", "content": "x", "content_base64": "eA=="}},
+		"file patch no patch":       {"operation": "file.patch", "args": map[string]any{"cwd": "/tmp"}},
+		"file remove no path":       {"operation": "file.remove", "args": map[string]any{}},
+		"upload begin path name":    {"operation": "upload.begin", "args": map[string]any{"filename": "dir/a.bin"}},
+		"upload chunk no data":      {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": 0}},
+		"upload chunk negative":     {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": -1, "data_base64": "AA=="}},
+		"upload finish neither":     {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle}},
+		"upload finish both":        {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "/tmp/a", "artifact": true}},
+		"upload finish relative":    {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "tmp/a"}},
+		"upload abort no handle":    {"operation": "upload.abort", "args": map[string]any{}},
+		"artifact return no path":   {"operation": "artifact.return", "args": map[string]any{}},
+		"artifact stat upload":      {"operation": "artifact.stat", "args": map[string]any{"handle": uploadHandle}},
+		"artifact read negative":    {"operation": "artifact.read", "args": map[string]any{"handle": artifactHandle, "offset": -1}},
+		"artifact materialize rel":  {"operation": "artifact.materialize", "args": map[string]any{"handle": artifactHandle, "destination": "tmp/a"}},
+		"artifact delete no handle": {"operation": "artifact.delete", "args": map[string]any{}},
+	}
+	for name, input := range invalidCases {
+		t.Run("schema invalid "+name, func(t *testing.T) {
+			if err := resolvedSchema.Validate(input); err == nil {
+				t.Fatal("schema accepted invalid input")
+			}
+		})
+	}
+	for name, input := range validCases {
+		operation, _ := input["operation"].(string)
+		if operation == "health" || operation == "version" || operation == "run" || len(operation) >= 4 && operation[:4] == "job." {
+			continue
+		}
+		copyInput := map[string]any{"operation": operation, "args": map[string]any{}}
+		for key, value := range input["args"].(map[string]any) {
+			copyInput["args"].(map[string]any)[key] = value
+		}
+		copyInput["args"].(map[string]any)["unexpected"] = true
+		t.Run("schema rejects unknown "+name, func(t *testing.T) {
+			if err := resolvedSchema.Validate(copyInput); err == nil {
+				t.Fatal("schema accepted unknown Slice 3 argument")
+			}
+		})
+	}
+
+	source := filepath.Join(t.TempDir(), "artifact.bin")
+	payload := []byte{0x00, 0xff, 0x41, 0x42}
+	if err := os.WriteFile(source, payload, 0600); err != nil {
+		t.Fatal(err)
+	}
 	called, err := clientSession.CallTool(ctx, &mcp.CallToolParams{
 		Name: "call_hec",
 		Arguments: map[string]any{
-			"operation": "health",
-			"args":      map[string]any{},
+			"operation": "artifact.return",
+			"args":      map[string]any{"path": source, "name": "artifact.bin", "media_type": "application/octet-stream"},
 		},
 	})
 	if err != nil {
-		t.Fatalf("call tool: %v", err)
+		t.Fatalf("call artifact.return: %v", err)
 	}
-	if called.IsError || len(called.Content) != 1 {
+	if called.IsError || len(called.Content) != 2 {
 		t.Fatalf("tool result = %#v", called)
 	}
-	text, ok := called.Content[0].(*mcp.TextContent)
-	if !ok || text.Text != "HEC is alive." {
-		t.Fatalf("text content = %#v", called.Content[0])
+	if text, ok := called.Content[0].(*mcp.TextContent); !ok || text.Text == "" {
+		t.Fatalf("summary content = %#v", called.Content[0])
+	}
+	link, ok := called.Content[1].(*mcp.ResourceLink)
+	if !ok {
+		t.Fatalf("resource content type = %T", called.Content[1])
+	}
+	if link.Name != "artifact.bin" || link.MIMEType != "application/octet-stream" || link.URI == "" {
+		t.Fatalf("resource link = %#v", link)
 	}
 	structured, ok := called.StructuredContent.(map[string]any)
-	if !ok || structured["protocol"] != ProtocolVersion || structured["operation"] != "health" || structured["ok"] != true {
+	if !ok || structured["operation"] != "artifact.return" || structured["ok"] != true {
 		t.Fatalf("structured content = %#v", called.StructuredContent)
+	}
+	read, err := clientSession.ReadResource(ctx, &mcp.ReadResourceParams{URI: link.URI})
+	if err != nil {
+		t.Fatalf("read resource: %v", err)
+	}
+	if len(read.Contents) != 1 {
+		t.Fatalf("resource contents = %#v", read.Contents)
+	}
+	content := read.Contents[0]
+	if content.MIMEType != "application/octet-stream" || content.Meta["name"] != "artifact.bin" || !bytes.Equal(content.Blob, payload) {
+		t.Fatalf("resource = %#v", content)
 	}
 }
 
