@@ -1,0 +1,23 @@
+[Unit]
+Description=HEC ChatGPT-native root workstation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+EnvironmentFile=-/etc/hec/hec.env
+EnvironmentFile=/etc/hec/tunnel.env
+Environment=PATH=/opt/hec/current/bin:/opt/hec/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RuntimeDirectory=hec
+StateDirectory=hec
+CacheDirectory=hec
+WorkingDirectory=/root
+ExecStart=/opt/hec/current/bin/hec serve
+Restart=always
+RestartSec=1
+TimeoutStopSec=15
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
