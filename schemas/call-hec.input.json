@@ -636,6 +636,843 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "title": "File stat",
+      "description": "Read native metadata for one filesystem entry.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.stat",
+          "description": "Read native metadata for one filesystem entry."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Absolute path or a relative path resolved from /root."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.stat and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "File list",
+      "description": "List direct children of one directory in deterministic name order.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.list",
+          "description": "List direct children of one directory in deterministic name order."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Directory path; relative paths resolve from /root."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Entry offset. Omit for 0."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096,
+              "description": "Maximum entries. Omit for 256."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.list and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "File read",
+      "description": "Read one bounded byte range from a file.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.read",
+          "description": "Read one bounded byte range from a file."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "File path; relative paths resolve from /root."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Byte offset. Omit for 0."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Maximum bytes. Omit for 262144."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.read and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "File write",
+      "description": "Atomically replace or create one file with exact UTF-8 or base64 bytes.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.write",
+          "description": "Atomically replace or create one file with exact UTF-8 or base64 bytes."
+        },
+        "args": {
+          "description": "Exactly one of content or content_base64 is required.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Absolute path or a relative path resolved from /root."
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Exact UTF-8 content."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "path",
+                "content_base64"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Absolute path or a relative path resolved from /root."
+                },
+                "content_base64": {
+                  "type": "string",
+                  "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+                  "description": "Base64-encoded bytes."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.write and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "File append",
+      "description": "Append exact UTF-8 or base64 bytes using native append semantics.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.append",
+          "description": "Append exact UTF-8 or base64 bytes using native append semantics."
+        },
+        "args": {
+          "description": "Exactly one of content or content_base64 is required.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Absolute path or a relative path resolved from /root."
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Exact UTF-8 content."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "path",
+                "content_base64"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Absolute path or a relative path resolved from /root."
+                },
+                "content_base64": {
+                  "type": "string",
+                  "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+                  "description": "Base64-encoded bytes."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.append and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "File patch",
+      "description": "Apply one UTF-8 unified diff with native git apply or patch tooling.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.patch",
+          "description": "Apply one UTF-8 unified diff with native git apply or patch tooling."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "patch"
+          ],
+          "properties": {
+            "cwd": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Working directory. Omit for /root."
+            },
+            "patch": {
+              "type": "string",
+              "minLength": 1,
+              "description": "UTF-8 unified diff text."
+            },
+            "strip": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16,
+              "description": "Leading path components to strip. Omit for 1."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.patch and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "File remove",
+      "description": "Remove exactly one named filesystem path.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "file.remove",
+          "description": "Remove exactly one named filesystem path."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Path to remove; relative paths resolve from /root."
+            },
+            "recursive": {
+              "type": "boolean",
+              "description": "Remove a named directory tree when true. Omit for false."
+            },
+            "missing_ok": {
+              "type": "boolean",
+              "description": "Succeed with removed false when absent. Omit for false."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for file.remove and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Upload begin",
+      "description": "Create durable on-disk state for one resumable chunked upload.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "upload.begin",
+          "description": "Create durable on-disk state for one resumable chunked upload."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "filename"
+          ],
+          "properties": {
+            "filename": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^/\\\\]+$",
+              "not": {
+                "enum": [
+                  ".",
+                  ".."
+                ]
+              },
+              "description": "A basename with no path separators."
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Expected total byte count."
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Expected lowercase SHA-256 digest."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for upload.begin and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Upload chunk",
+      "description": "Write one decoded chunk at an exact current or prior upload offset.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "upload.chunk",
+          "description": "Write one decoded chunk at an exact current or prior upload offset."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle",
+            "offset",
+            "data_base64"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^upload:[0-9a-f]{32}$",
+              "description": "Cryptographically random upload handle returned by upload.begin."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Exact byte offset; gaps beyond current data are rejected."
+            },
+            "data_base64": {
+              "type": "string",
+              "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+              "description": "Base64-encoded bytes."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for upload.chunk and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Upload finish",
+      "description": "Verify and complete one upload to an absolute destination or immutable artifact.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "upload.finish",
+          "description": "Verify and complete one upload to an absolute destination or immutable artifact."
+        },
+        "args": {
+          "description": "Exactly one finish target is required: destination, or artifact set to true.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "handle",
+                "destination"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "pattern": "^upload:[0-9a-f]{32}$",
+                  "description": "Cryptographically random upload handle returned by upload.begin."
+                },
+                "destination": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^/",
+                  "description": "Absolute filesystem path."
+                },
+                "overwrite": {
+                  "type": "boolean",
+                  "description": "Replace an existing destination when true. Omit for false."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "handle",
+                "artifact"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "pattern": "^upload:[0-9a-f]{32}$",
+                  "description": "Cryptographically random upload handle returned by upload.begin."
+                },
+                "artifact": {
+                  "const": true,
+                  "description": "Promote the completed upload to an immutable artifact."
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[^/\\\\]+$",
+                  "not": {
+                    "enum": [
+                      ".",
+                      ".."
+                    ]
+                  },
+                  "description": "A basename with no path separators."
+                },
+                "media_type": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Optional artifact media type."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for upload.finish and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Upload abort",
+      "description": "Remove only one named in-progress upload.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "upload.abort",
+          "description": "Remove only one named in-progress upload."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^upload:[0-9a-f]{32}$",
+              "description": "Cryptographically random upload handle returned by upload.begin."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for upload.abort and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Artifact return",
+      "description": "Copy one regular file or deterministic directory archive into immutable artifact state.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "artifact.return",
+          "description": "Copy one regular file or deterministic directory archive into immutable artifact state."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Source file or directory; relative paths resolve from /root."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^/\\\\]+$",
+              "not": {
+                "enum": [
+                  ".",
+                  ".."
+                ]
+              },
+              "description": "A basename with no path separators."
+            },
+            "media_type": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional artifact media type."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for artifact.return and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Artifact stat",
+      "description": "Read stored metadata for one artifact without reading its payload.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "artifact.stat",
+          "description": "Read stored metadata for one artifact without reading its payload."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{32}$",
+              "description": "Cryptographically random artifact handle returned by artifact.return or upload.finish."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for artifact.stat and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Artifact read",
+      "description": "Read one bounded byte range from an immutable artifact payload.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "artifact.read",
+          "description": "Read one bounded byte range from an immutable artifact payload."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{32}$",
+              "description": "Cryptographically random artifact handle returned by artifact.return or upload.finish."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Byte offset. Omit for 0."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576,
+              "description": "Maximum bytes. Omit for 262144."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for artifact.read and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Artifact materialize",
+      "description": "Copy one immutable artifact payload to an absolute filesystem destination.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "artifact.materialize",
+          "description": "Copy one immutable artifact payload to an absolute filesystem destination."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle",
+            "destination"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{32}$",
+              "description": "Cryptographically random artifact handle returned by artifact.return or upload.finish."
+            },
+            "destination": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^/",
+              "description": "Absolute filesystem path."
+            },
+            "overwrite": {
+              "type": "boolean",
+              "description": "Replace an existing destination when true. Omit for false."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for artifact.materialize and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Artifact list",
+      "description": "List concise immutable artifact metadata in deterministic order.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "artifact.list",
+          "description": "List concise immutable artifact metadata in deterministic order."
+        },
+        "args": {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Artifact offset. Omit for 0."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Maximum artifacts. Omit for 100."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for artifact.list and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Artifact delete",
+      "description": "Delete only one named immutable artifact.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "artifact.delete",
+          "description": "Delete only one named immutable artifact."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{32}$",
+              "description": "Cryptographically random artifact handle returned by artifact.return or upload.finish."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for artifact.delete and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

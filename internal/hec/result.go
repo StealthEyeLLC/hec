@@ -1,6 +1,9 @@
 package hec
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 const ProtocolVersion = "HEC1/1.0.0"
 
@@ -137,6 +140,77 @@ func (r Result) Summary() string {
 		if r.OK && r.Handle != nil {
 			return fmt.Sprintf("Forgot %s.", *r.Handle)
 		}
+	case "file.stat":
+		if r.OK {
+			return fmt.Sprintf("Read metadata for %s.", resultString(r.Result, "path"))
+		}
+	case "file.list":
+		if r.OK {
+			return fmt.Sprintf("Listed %d entries in %s.", resultLength(r.Result["entries"]), resultString(r.Result, "path"))
+		}
+	case "file.read":
+		if r.OK {
+			return fmt.Sprintf("Read %d bytes from %s.", resultRangeLength(r.Result), resultString(r.Result, "path"))
+		}
+	case "file.write":
+		if r.OK {
+			count, _ := resultInt64(r.Result["bytes_written"])
+			return fmt.Sprintf("Wrote %d bytes to %s.", count, resultString(r.Result, "path"))
+		}
+	case "file.append":
+		if r.OK {
+			count, _ := resultInt64(r.Result["bytes_appended"])
+			return fmt.Sprintf("Appended %d bytes to %s.", count, resultString(r.Result, "path"))
+		}
+	case "file.patch":
+		if r.OK {
+			return fmt.Sprintf("Applied patch in %s.", resultString(r.Result, "cwd"))
+		}
+	case "file.remove":
+		if r.OK {
+			return fmt.Sprintf("Removed %s.", resultString(r.Result, "path"))
+		}
+	case "upload.begin":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Started %s.", *r.Handle)
+		}
+	case "upload.chunk":
+		if r.OK && r.Handle != nil {
+			count, _ := resultInt64(r.Result["bytes_written"])
+			return fmt.Sprintf("Wrote %d bytes to %s.", count, *r.Handle)
+		}
+	case "upload.finish":
+		if r.OK {
+			return fmt.Sprintf("Completed %s.", resultString(r.Result, "upload_handle"))
+		}
+	case "upload.abort":
+		if r.OK {
+			return fmt.Sprintf("Aborted %s.", resultString(r.Result, "handle"))
+		}
+	case "artifact.return":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Returned %s.", *r.Handle)
+		}
+	case "artifact.stat":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Read metadata for %s.", *r.Handle)
+		}
+	case "artifact.read":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Read %d bytes from %s.", resultRangeLength(r.Result), *r.Handle)
+		}
+	case "artifact.materialize":
+		if r.OK && r.Handle != nil {
+			return fmt.Sprintf("Materialized %s to %s.", *r.Handle, resultString(r.Result, "destination"))
+		}
+	case "artifact.list":
+		if r.OK {
+			return fmt.Sprintf("Listed %d artifacts.", resultLength(r.Result["artifacts"]))
+		}
+	case "artifact.delete":
+		if r.OK {
+			return fmt.Sprintf("Deleted %s.", resultString(r.Result, "handle"))
+		}
 	}
 	if r.Error != nil {
 		return r.Error.Message
@@ -145,4 +219,26 @@ func (r Result) Summary() string {
 		return fmt.Sprintf("Completed %s.", r.Operation)
 	}
 	return fmt.Sprintf("%s failed.", r.Operation)
+}
+
+func resultString(result map[string]any, key string) string {
+	value, _ := result[key].(string)
+	return value
+}
+
+func resultRangeLength(result map[string]any) int64 {
+	offset, _ := resultInt64(result["offset"])
+	next, _ := resultInt64(result["next_offset"])
+	return next - offset
+}
+
+func resultLength(value any) int {
+	if value == nil {
+		return 0
+	}
+	reflected := reflect.ValueOf(value)
+	if reflected.Kind() == reflect.Slice || reflected.Kind() == reflect.Array {
+		return reflected.Len()
+	}
+	return 0
 }

@@ -12,6 +12,12 @@ type Dispatcher struct {
 	hecBinaryPath  string
 	systemdRunPath string
 	systemctlPath  string
+	uploadsDir     string
+	artifactsDir   string
+	gitPath        string
+	patchPath      string
+	tarPath        string
+	zstdPath       string
 }
 
 func NewDispatcher() *Dispatcher {
@@ -21,6 +27,12 @@ func NewDispatcher() *Dispatcher {
 		hecBinaryPath:  JobBinaryPath,
 		systemdRunPath: "/usr/bin/systemd-run",
 		systemctlPath:  "/usr/bin/systemctl",
+		uploadsDir:     UploadRootDir,
+		artifactsDir:   ArtifactRootDir,
+		gitPath:        "/usr/bin/git",
+		patchPath:      "/usr/bin/patch",
+		tarPath:        "/usr/bin/tar",
+		zstdPath:       "/usr/bin/zstd",
 	}
 }
 
@@ -70,6 +82,40 @@ func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
 		return d.jobList(ctx, request.Args)
 	case "job.forget":
 		return d.jobForget(ctx, request.Args)
+	case "file.stat":
+		return d.fileStat(ctx, request.Args)
+	case "file.list":
+		return d.fileList(ctx, request.Args)
+	case "file.read":
+		return d.fileRead(ctx, request.Args)
+	case "file.write":
+		return d.fileWrite(ctx, request.Args)
+	case "file.append":
+		return d.fileAppend(ctx, request.Args)
+	case "file.patch":
+		return d.filePatch(ctx, request.Args)
+	case "file.remove":
+		return d.fileRemove(ctx, request.Args)
+	case "upload.begin":
+		return d.uploadBegin(ctx, request.Args)
+	case "upload.chunk":
+		return d.uploadChunk(ctx, request.Args)
+	case "upload.finish":
+		return d.uploadFinish(ctx, request.Args)
+	case "upload.abort":
+		return d.uploadAbort(ctx, request.Args)
+	case "artifact.return":
+		return d.artifactReturn(ctx, request.Args)
+	case "artifact.stat":
+		return d.artifactStat(ctx, request.Args)
+	case "artifact.read":
+		return d.artifactRead(ctx, request.Args)
+	case "artifact.materialize":
+		return d.artifactMaterialize(ctx, request.Args)
+	case "artifact.list":
+		return d.artifactList(ctx, request.Args)
+	case "artifact.delete":
+		return d.artifactDelete(ctx, request.Args)
 	default:
 		return failedResult(operation, "operation_not_found", fmt.Sprintf("unknown operation %q", operation))
 	}
