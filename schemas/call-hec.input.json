@@ -638,6 +638,552 @@
       "additionalProperties": false
     },
     {
+      "title": "Terminal open",
+      "description": "Open one persistent PTY-backed terminal on the HEC workstation and return a reconnectable handle.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.open",
+          "description": "Open one persistent PTY-backed terminal on the HEC workstation and return a reconnectable handle."
+        },
+        "args": {
+          "description": "Choose the default interactive Bash, one shell command, or one direct argument vector.",
+          "oneOf": [
+            {
+              "title": "Default interactive Bash",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[^\\x00-\\x1F\\x7F-\\x{9F}]+$",
+                  "description": "Optional human name. Duplicate names are allowed."
+                },
+                "cwd": {
+                  "type": "string",
+                  "minLength": 1,
+                  "default": "/root",
+                  "description": "Working directory; relative paths resolve from /root."
+                },
+                "env": {
+                  "type": "object",
+                  "description": "Environment variables to add or replace in the terminal pane.",
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "unset_env": {
+                  "type": "array",
+                  "description": "Valid environment variable names to remove from the terminal pane environment.",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "uniqueItems": true
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 120,
+                  "description": "Initial terminal width in columns."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 40,
+                  "description": "Initial terminal height in rows."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "Shell command",
+              "type": "object",
+              "required": [
+                "command"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[^\\x00-\\x1F\\x7F-\\x{9F}]+$",
+                  "description": "Optional human name. Duplicate names are allowed."
+                },
+                "cwd": {
+                  "type": "string",
+                  "minLength": 1,
+                  "default": "/root",
+                  "description": "Working directory; relative paths resolve from /root."
+                },
+                "env": {
+                  "type": "object",
+                  "description": "Environment variables to add or replace in the terminal pane.",
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "unset_env": {
+                  "type": "array",
+                  "description": "Valid environment variable names to remove from the terminal pane environment.",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "uniqueItems": true
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 120,
+                  "description": "Initial terminal width in columns."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 40,
+                  "description": "Initial terminal height in rows."
+                },
+                "command": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Shell command executed by /bin/bash -lc."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "Direct argument vector",
+              "type": "object",
+              "required": [
+                "argv"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[^\\x00-\\x1F\\x7F-\\x{9F}]+$",
+                  "description": "Optional human name. Duplicate names are allowed."
+                },
+                "cwd": {
+                  "type": "string",
+                  "minLength": 1,
+                  "default": "/root",
+                  "description": "Working directory; relative paths resolve from /root."
+                },
+                "env": {
+                  "type": "object",
+                  "description": "Environment variables to add or replace in the terminal pane.",
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "unset_env": {
+                  "type": "array",
+                  "description": "Valid environment variable names to remove from the terminal pane environment.",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                  },
+                  "uniqueItems": true
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 120,
+                  "description": "Initial terminal width in columns."
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "default": 40,
+                  "description": "Initial terminal height in rows."
+                },
+                "argv": {
+                  "type": "array",
+                  "minItems": 1,
+                  "prefixItems": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Executable path or command name."
+                    }
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Executable path or name followed by exact arguments."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Terminal list",
+      "description": "List retained HEC terminals and their current tmux process state.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.list",
+          "description": "List retained HEC terminals and their current tmux process state."
+        },
+        "args": {
+          "type": "object",
+          "description": "No arguments.",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Terminal read",
+      "description": "Read either the current terminal screen or a byte range from accumulated terminal output.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.read",
+          "description": "Read either the current terminal screen or a byte range from accumulated terminal output."
+        },
+        "args": {
+          "description": "Choose current screen capture or retained output byte-range mode.",
+          "oneOf": [
+            {
+              "title": "Current screen",
+              "type": "object",
+              "required": [
+                "handle",
+                "mode"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+                  "description": "Opaque HEC terminal handle in terminal:<id> form."
+                },
+                "mode": {
+                  "const": "screen",
+                  "description": "Capture the current visible pane."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "title": "Accumulated output",
+              "type": "object",
+              "required": [
+                "handle",
+                "mode"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+                  "description": "Opaque HEC terminal handle in terminal:<id> form."
+                },
+                "mode": {
+                  "const": "output",
+                  "description": "Read retained terminal output bytes."
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "Zero-based byte offset."
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1048576,
+                  "default": 262144,
+                  "description": "Maximum bytes to read."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Terminal write",
+      "description": "Paste exact UTF-8 or binary bytes into an active terminal pane.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.write",
+          "description": "Paste exact UTF-8 or binary bytes into an active terminal pane."
+        },
+        "args": {
+          "description": "Exactly one of data or data_base64 is required.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "handle",
+                "data"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+                  "description": "Opaque HEC terminal handle in terminal:<id> form."
+                },
+                "data": {
+                  "type": "string",
+                  "maxLength": 1048576,
+                  "description": "Exact UTF-8 bytes to paste."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "handle",
+                "data_base64"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string",
+                  "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+                  "description": "Opaque HEC terminal handle in terminal:<id> form."
+                },
+                "data_base64": {
+                  "type": "string",
+                  "maxLength": 1398104,
+                  "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+                  "description": "Base64-encoded exact bytes to paste."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Terminal resize",
+      "description": "Set the terminal window width and height.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.resize",
+          "description": "Set the terminal window width and height."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+              "description": "Opaque HEC terminal handle in terminal:<id> form."
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Terminal width in columns."
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Terminal height in rows."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Terminal signal",
+      "description": "Send one Linux signal to the terminal pane’s foreground process group.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.signal",
+          "description": "Send one Linux signal to the terminal pane’s foreground process group."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle",
+            "signal"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+              "description": "Opaque HEC terminal handle in terminal:<id> form."
+            },
+            "signal": {
+              "type": "string",
+              "enum": [
+                "SIGHUP",
+                "SIGINT",
+                "SIGQUIT",
+                "SIGILL",
+                "SIGTRAP",
+                "SIGABRT",
+                "SIGBUS",
+                "SIGFPE",
+                "SIGKILL",
+                "SIGUSR1",
+                "SIGSEGV",
+                "SIGUSR2",
+                "SIGPIPE",
+                "SIGALRM",
+                "SIGTERM",
+                "SIGCHLD",
+                "SIGCONT",
+                "SIGSTOP",
+                "SIGTSTP",
+                "SIGTTIN",
+                "SIGTTOU",
+                "SIGURG",
+                "SIGXCPU",
+                "SIGXFSZ",
+                "SIGVTALRM",
+                "SIGPROF",
+                "SIGWINCH",
+                "SIGIO",
+                "SIGSYS"
+              ],
+              "description": "Linux signal sent unchanged to the foreground process group."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Terminal close",
+      "description": "Close one HEC terminal, terminate its tmux session when present, and remove its retained terminal state.",
+      "type": "object",
+      "required": [
+        "operation",
+        "args"
+      ],
+      "properties": {
+        "operation": {
+          "const": "terminal.close",
+          "description": "Close one HEC terminal, terminate its tmux session when present, and remove its retained terminal state."
+        },
+        "args": {
+          "type": "object",
+          "required": [
+            "handle"
+          ],
+          "properties": {
+            "handle": {
+              "type": "string",
+              "pattern": "^terminal:[A-Za-z0-9_-]{22}$",
+              "description": "Opaque HEC terminal handle in terminal:<id> form."
+            }
+          },
+          "additionalProperties": false
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "title": "File stat",
       "description": "Read native metadata for one filesystem entry.",
       "type": "object",

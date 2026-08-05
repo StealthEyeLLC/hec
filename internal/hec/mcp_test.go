@@ -14,7 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
+func TestMCPPublishesSlice4InterfaceAndArtifactResource(t *testing.T) {
 	ctx := context.Background()
 	dispatcher := NewDispatcher()
 	dispatcher.uploadsDir = filepath.Join(t.TempDir(), "uploads")
@@ -61,8 +61,8 @@ func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
 	if !ok {
 		t.Fatalf("input schema oneOf = %#v", schemaObject["oneOf"])
 	}
-	if len(branches) != 27 {
-		t.Fatalf("input schema oneOf branch count = %d, want 27", len(branches))
+	if len(branches) != 34 {
+		t.Fatalf("input schema oneOf branch count = %d, want 34", len(branches))
 	}
 
 	operations := make([]string, 0, len(branches))
@@ -97,7 +97,8 @@ func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
 		"artifact.delete", "artifact.list", "artifact.materialize", "artifact.read", "artifact.return", "artifact.stat",
 		"file.append", "file.list", "file.patch", "file.read", "file.remove", "file.stat", "file.write",
 		"health", "job.forget", "job.list", "job.output", "job.signal", "job.start", "job.status", "job.wait",
-		"run", "upload.abort", "upload.begin", "upload.chunk", "upload.finish", "version",
+		"run", "terminal.close", "terminal.list", "terminal.open", "terminal.read", "terminal.resize", "terminal.signal", "terminal.write",
+		"upload.abort", "upload.begin", "upload.chunk", "upload.finish", "version",
 	}
 	if !reflect.DeepEqual(operations, expectedOperations) {
 		t.Fatalf("enumerated operations = %#v, want %#v", operations, expectedOperations)
@@ -117,19 +118,36 @@ func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
 	}
 
 	jobHandle := "job:AAAAAAAAAAAAAAAAAAAAAA"
+	terminalHandle := "terminal:AAAAAAAAAAAAAAAAAAAAAA"
 	uploadHandle := "upload:0123456789abcdef0123456789abcdef"
 	artifactHandle := "artifact:0123456789abcdef0123456789abcdef"
 	validCases := map[string]map[string]any{
-		"health":               {"operation": "health", "args": map[string]any{}},
-		"version":              {"operation": "version", "args": map[string]any{}},
-		"run":                  {"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}}},
-		"job.start":            {"operation": "job.start", "args": map[string]any{"argv": []any{"/bin/true"}}},
-		"job.status":           {"operation": "job.status", "args": map[string]any{"handle": jobHandle}},
-		"job.output":           {"operation": "job.output", "args": map[string]any{"handle": jobHandle, "stream": "stdout"}},
-		"job.wait":             {"operation": "job.wait", "args": map[string]any{"handle": jobHandle}},
-		"job.signal":           {"operation": "job.signal", "args": map[string]any{"handle": jobHandle, "signal": "SIGTERM"}},
-		"job.list":             {"operation": "job.list", "args": map[string]any{}},
-		"job.forget":           {"operation": "job.forget", "args": map[string]any{"handle": jobHandle}},
+		"health":                {"operation": "health", "args": map[string]any{}},
+		"version":               {"operation": "version", "args": map[string]any{}},
+		"run":                   {"operation": "run", "args": map[string]any{"argv": []any{"/usr/bin/id"}}},
+		"job.start":             {"operation": "job.start", "args": map[string]any{"argv": []any{"/bin/true"}}},
+		"job.status":            {"operation": "job.status", "args": map[string]any{"handle": jobHandle}},
+		"job.output":            {"operation": "job.output", "args": map[string]any{"handle": jobHandle, "stream": "stdout"}},
+		"job.wait":              {"operation": "job.wait", "args": map[string]any{"handle": jobHandle}},
+		"job.signal":            {"operation": "job.signal", "args": map[string]any{"handle": jobHandle, "signal": "SIGTERM"}},
+		"job.list":              {"operation": "job.list", "args": map[string]any{}},
+		"job.forget":            {"operation": "job.forget", "args": map[string]any{"handle": jobHandle}},
+		"terminal.open.default": {"operation": "terminal.open", "args": map[string]any{}},
+		"terminal.open.command": {"operation": "terminal.open", "args": map[string]any{"command": "printf ok"}},
+		"terminal.open.argv":    {"operation": "terminal.open", "args": map[string]any{"argv": []any{"/bin/true"}}},
+		"terminal.open.full": {"operation": "terminal.open", "args": map[string]any{
+			"name": "build shell", "cwd": "/root", "env": map[string]any{"A": "B"}, "unset_env": []any{"OLD"}, "width": 132, "height": 43,
+		}},
+		"terminal.list":        {"operation": "terminal.list", "args": map[string]any{}},
+		"terminal.read.screen": {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "screen"}},
+		"terminal.read.output": {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "output", "offset": 0, "limit": 262144}},
+		"terminal.write.data":  {"operation": "terminal.write", "args": map[string]any{"handle": terminalHandle, "data": "hello\n"}},
+		"terminal.write.base64": {"operation": "terminal.write", "args": map[string]any{
+			"handle": terminalHandle, "data_base64": "AA==",
+		}},
+		"terminal.resize":      {"operation": "terminal.resize", "args": map[string]any{"handle": terminalHandle, "width": 132, "height": 43}},
+		"terminal.signal":      {"operation": "terminal.signal", "args": map[string]any{"handle": terminalHandle, "signal": "SIGINT"}},
+		"terminal.close":       {"operation": "terminal.close", "args": map[string]any{"handle": terminalHandle}},
 		"file.stat":            {"operation": "file.stat", "args": map[string]any{"path": "/tmp/a"}},
 		"file.list":            {"operation": "file.list", "args": map[string]any{"path": "/tmp"}},
 		"file.read":            {"operation": "file.read", "args": map[string]any{"path": "/tmp/a"}},
@@ -159,29 +177,52 @@ func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
 	}
 
 	invalidCases := map[string]map[string]any{
-		"unknown operation":         {"operation": "unknown", "args": map[string]any{}},
-		"file stat no path":         {"operation": "file.stat", "args": map[string]any{}},
-		"file list negative offset": {"operation": "file.list", "args": map[string]any{"path": "/tmp", "offset": -1}},
-		"file list zero limit":      {"operation": "file.list", "args": map[string]any{"path": "/tmp", "limit": 0}},
-		"file read negative offset": {"operation": "file.read", "args": map[string]any{"path": "/tmp/a", "offset": -1}},
-		"file read above max":       {"operation": "file.read", "args": map[string]any{"path": "/tmp/a", "limit": 1048577}},
-		"file write neither":        {"operation": "file.write", "args": map[string]any{"path": "/tmp/a"}},
-		"file write both":           {"operation": "file.write", "args": map[string]any{"path": "/tmp/a", "content": "x", "content_base64": "eA=="}},
-		"file append both":          {"operation": "file.append", "args": map[string]any{"path": "/tmp/a", "content": "x", "content_base64": "eA=="}},
-		"file patch no patch":       {"operation": "file.patch", "args": map[string]any{"cwd": "/tmp"}},
-		"file remove no path":       {"operation": "file.remove", "args": map[string]any{}},
-		"upload begin path name":    {"operation": "upload.begin", "args": map[string]any{"filename": "dir/a.bin"}},
-		"upload chunk no data":      {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": 0}},
-		"upload chunk negative":     {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": -1, "data_base64": "AA=="}},
-		"upload finish neither":     {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle}},
-		"upload finish both":        {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "/tmp/a", "artifact": true}},
-		"upload finish relative":    {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "tmp/a"}},
-		"upload abort no handle":    {"operation": "upload.abort", "args": map[string]any{}},
-		"artifact return no path":   {"operation": "artifact.return", "args": map[string]any{}},
-		"artifact stat upload":      {"operation": "artifact.stat", "args": map[string]any{"handle": uploadHandle}},
-		"artifact read negative":    {"operation": "artifact.read", "args": map[string]any{"handle": artifactHandle, "offset": -1}},
-		"artifact materialize rel":  {"operation": "artifact.materialize", "args": map[string]any{"handle": artifactHandle, "destination": "tmp/a"}},
-		"artifact delete no handle": {"operation": "artifact.delete", "args": map[string]any{}},
+		"unknown operation":              {"operation": "unknown", "args": map[string]any{}},
+		"unknown terminal operation":     {"operation": "terminal.kill", "args": map[string]any{"handle": terminalHandle}},
+		"terminal open both":             {"operation": "terminal.open", "args": map[string]any{"command": "true", "argv": []any{"/bin/true"}}},
+		"terminal open empty argv":       {"operation": "terminal.open", "args": map[string]any{"argv": []any{}}},
+		"terminal open empty argv zero":  {"operation": "terminal.open", "args": map[string]any{"argv": []any{""}}},
+		"terminal open invalid width":    {"operation": "terminal.open", "args": map[string]any{"width": 0}},
+		"terminal open invalid height":   {"operation": "terminal.open", "args": map[string]any{"height": 1001}},
+		"terminal open unknown":          {"operation": "terminal.open", "args": map[string]any{"unexpected": true}},
+		"terminal list nonempty":         {"operation": "terminal.list", "args": map[string]any{"handle": terminalHandle}},
+		"terminal read no mode":          {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle}},
+		"terminal read invalid mode":     {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "history"}},
+		"terminal screen output field":   {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "screen", "offset": 0}},
+		"terminal output negative":       {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "output", "offset": -1}},
+		"terminal output zero limit":     {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "output", "limit": 0}},
+		"terminal output above max":      {"operation": "terminal.read", "args": map[string]any{"handle": terminalHandle, "mode": "output", "limit": 1048577}},
+		"terminal write neither":         {"operation": "terminal.write", "args": map[string]any{"handle": terminalHandle}},
+		"terminal write both":            {"operation": "terminal.write", "args": map[string]any{"handle": terminalHandle, "data": "x", "data_base64": "eA=="}},
+		"terminal resize missing height": {"operation": "terminal.resize", "args": map[string]any{"handle": terminalHandle, "width": 80}},
+		"terminal signal missing":        {"operation": "terminal.signal", "args": map[string]any{"handle": terminalHandle}},
+		"terminal signal invalid":        {"operation": "terminal.signal", "args": map[string]any{"handle": terminalHandle, "signal": "SIGBOGUS"}},
+		"terminal close no handle":       {"operation": "terminal.close", "args": map[string]any{}},
+		"terminal malformed handle":      {"operation": "terminal.close", "args": map[string]any{"handle": "terminal:../../etc/passwd"}},
+		"terminal upload handle":         {"operation": "terminal.close", "args": map[string]any{"handle": uploadHandle}},
+		"terminal artifact handle":       {"operation": "terminal.read", "args": map[string]any{"handle": artifactHandle, "mode": "screen"}},
+		"file stat no path":              {"operation": "file.stat", "args": map[string]any{}},
+		"file list negative offset":      {"operation": "file.list", "args": map[string]any{"path": "/tmp", "offset": -1}},
+		"file list zero limit":           {"operation": "file.list", "args": map[string]any{"path": "/tmp", "limit": 0}},
+		"file read negative offset":      {"operation": "file.read", "args": map[string]any{"path": "/tmp/a", "offset": -1}},
+		"file read above max":            {"operation": "file.read", "args": map[string]any{"path": "/tmp/a", "limit": 1048577}},
+		"file write neither":             {"operation": "file.write", "args": map[string]any{"path": "/tmp/a"}},
+		"file write both":                {"operation": "file.write", "args": map[string]any{"path": "/tmp/a", "content": "x", "content_base64": "eA=="}},
+		"file append both":               {"operation": "file.append", "args": map[string]any{"path": "/tmp/a", "content": "x", "content_base64": "eA=="}},
+		"file patch no patch":            {"operation": "file.patch", "args": map[string]any{"cwd": "/tmp"}},
+		"file remove no path":            {"operation": "file.remove", "args": map[string]any{}},
+		"upload begin path name":         {"operation": "upload.begin", "args": map[string]any{"filename": "dir/a.bin"}},
+		"upload chunk no data":           {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": 0}},
+		"upload chunk negative":          {"operation": "upload.chunk", "args": map[string]any{"handle": uploadHandle, "offset": -1, "data_base64": "AA=="}},
+		"upload finish neither":          {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle}},
+		"upload finish both":             {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "/tmp/a", "artifact": true}},
+		"upload finish relative":         {"operation": "upload.finish", "args": map[string]any{"handle": uploadHandle, "destination": "tmp/a"}},
+		"upload abort no handle":         {"operation": "upload.abort", "args": map[string]any{}},
+		"artifact return no path":        {"operation": "artifact.return", "args": map[string]any{}},
+		"artifact stat upload":           {"operation": "artifact.stat", "args": map[string]any{"handle": uploadHandle}},
+		"artifact read negative":         {"operation": "artifact.read", "args": map[string]any{"handle": artifactHandle, "offset": -1}},
+		"artifact materialize rel":       {"operation": "artifact.materialize", "args": map[string]any{"handle": artifactHandle, "destination": "tmp/a"}},
+		"artifact delete no handle":      {"operation": "artifact.delete", "args": map[string]any{}},
 	}
 	for name, input := range invalidCases {
 		t.Run("schema invalid "+name, func(t *testing.T) {
@@ -202,7 +243,7 @@ func TestMCPPublishesSlice3InterfaceAndArtifactResource(t *testing.T) {
 		copyInput["args"].(map[string]any)["unexpected"] = true
 		t.Run("schema rejects unknown "+name, func(t *testing.T) {
 			if err := resolvedSchema.Validate(copyInput); err == nil {
-				t.Fatal("schema accepted unknown Slice 3 argument")
+				t.Fatal("schema accepted unknown operation argument")
 			}
 		})
 	}
