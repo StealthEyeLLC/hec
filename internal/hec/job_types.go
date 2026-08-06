@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -156,8 +155,8 @@ func validateJobSpec(spec *jobSpec) error {
 	if spec.CWD == "" {
 		spec.CWD = DefaultCWD
 	}
-	if spec.TimeoutMS < 0 {
-		return errors.New("job timeout_ms must be greater than or equal to zero")
+	if _, err := durationFromMilliseconds(spec.TimeoutMS); err != nil {
+		return errors.New("job timeout_ms must be greater than or equal to zero and within duration range")
 	}
 	if _, err := buildEnvironment(spec.Env, spec.UnsetEnv); err != nil {
 		return err
@@ -204,69 +203,11 @@ func writeJSONAtomic(path string, value any, mode os.FileMode) error {
 		return err
 	}
 	payload = append(payload, '\n')
-	dir := filepath.Dir(path)
-	temp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".*")
-	if err != nil {
-		return err
-	}
-	tempPath := temp.Name()
-	removeTemp := true
-	defer func() {
-		_ = temp.Close()
-		if removeTemp {
-			_ = os.Remove(tempPath)
-		}
-	}()
-	if err := temp.Chmod(mode); err != nil {
-		return err
-	}
-	if _, err := temp.Write(payload); err != nil {
-		return err
-	}
-	if err := temp.Sync(); err != nil {
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	if err := os.Rename(tempPath, path); err != nil {
-		return err
-	}
-	removeTemp = false
-	return nil
+	return writeFileDurable(path, payload, mode)
 }
 
 func writeBytesAtomic(path string, value []byte, mode os.FileMode) error {
-	dir := filepath.Dir(path)
-	temp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".*")
-	if err != nil {
-		return err
-	}
-	tempPath := temp.Name()
-	removeTemp := true
-	defer func() {
-		_ = temp.Close()
-		if removeTemp {
-			_ = os.Remove(tempPath)
-		}
-	}()
-	if err := temp.Chmod(mode); err != nil {
-		return err
-	}
-	if _, err := temp.Write(value); err != nil {
-		return err
-	}
-	if err := temp.Sync(); err != nil {
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	if err := os.Rename(tempPath, path); err != nil {
-		return err
-	}
-	removeTemp = false
-	return nil
+	return writeFileDurable(path, value, mode)
 }
 
 func writeTextAtomic(path, value string, mode os.FileMode) error {

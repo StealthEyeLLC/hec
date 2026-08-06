@@ -29,12 +29,14 @@ func TestSystemdBackedJobsIntegration(t *testing.T) {
 
 	root := t.TempDir()
 	dispatcher := &Dispatcher{
-		jobsDir:        filepath.Join(root, "jobs"),
-		jobKeysDir:     filepath.Join(root, "job-keys"),
-		systemdRunPath: "/usr/bin/systemd-run",
-		systemctlPath:  "/usr/bin/systemctl",
-		hecBinaryPath:  binary,
+		jobsDir:         filepath.Join(root, "jobs"),
+		jobKeysDir:      filepath.Join(root, "job-keys"),
+		mutationKeysDir: filepath.Join(root, "mutation-keys"),
+		systemdRunPath:  "/usr/bin/systemd-run",
+		systemctlPath:   "/usr/bin/systemctl",
+		hecBinaryPath:   binary,
 	}
+	dispatcher.keyedState = newKeyedMutationStore(dispatcher.mutationKeysDir)
 	ctx := context.Background()
 	var handles []string
 	t.Cleanup(func() {
@@ -50,11 +52,12 @@ func TestSystemdBackedJobsIntegration(t *testing.T) {
 	})
 
 	key := fmt.Sprintf("hec-systemd-integration-%d", time.Now().UnixNano())
+	jobCommand := "printf 'one\\n'; sleep 1; printf 'two\\n'"
 	start := dispatcher.Dispatch(ctx, CallRequest{
 		Operation:      "job.start",
 		IdempotencyKey: key,
 		Args: map[string]any{
-			"command": "printf 'one\\n'; sleep 1; printf 'two\\n'",
+			"command": jobCommand,
 		},
 	})
 	if !start.OK || start.Handle == nil {
@@ -102,11 +105,21 @@ func TestSystemdBackedJobsIntegration(t *testing.T) {
 		Operation:      "job.start",
 		IdempotencyKey: key,
 		Args: map[string]any{
-			"command": "printf duplicate",
+			"command": jobCommand,
 		},
 	})
 	if !repeated.OK || repeated.Handle == nil || *repeated.Handle != handle {
 		t.Fatalf("idempotent job.start = %#v", repeated)
+	}
+	conflict := dispatcher.Dispatch(ctx, CallRequest{
+		Operation:      "job.start",
+		IdempotencyKey: key,
+		Args: map[string]any{
+			"command": "printf duplicate",
+		},
+	})
+	if conflict.OK || conflict.Error == nil || conflict.Error.Code != "idempotency_conflict" {
+		t.Fatalf("changed idempotent job.start = %#v", conflict)
 	}
 
 	sleepStart := dispatcher.Dispatch(ctx, CallRequest{

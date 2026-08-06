@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/google/jsonschema-go v0.4.2
 	github.com/modelcontextprotocol/go-sdk v1.4.1
-	github.com/openai/tunnel-client v0.0.10
+	github.com/openai/tunnel-client v0.0.11-0.20260806014146-1bf01b0e1079
 	golang.org/x/sys v0.40.0
 	gopkg.in/yaml.v3 v3.0.1
 )

@@ -10,6 +10,8 @@ import (
 type Dispatcher struct {
 	jobsDir         string
 	jobKeysDir      string
+	mutationKeysDir string
+	keyedState      *keyedMutationStore
 	hecBinaryPath   string
 	systemdRunPath  string
 	systemctlPath   string
@@ -33,24 +35,25 @@ type Dispatcher struct {
 }
 
 func NewDispatcher() *Dispatcher {
-	return &Dispatcher{
-		jobsDir:        JobRootDir,
-		jobKeysDir:     JobKeyDir,
-		hecBinaryPath:  JobBinaryPath,
-		systemdRunPath: "/usr/bin/systemd-run",
-		systemctlPath:  "/usr/bin/systemctl",
-		uploadsDir:     UploadRootDir,
-		artifactsDir:   ArtifactRootDir,
-		terminalsDir:   TerminalRootDir,
-		tmuxPath:       "/usr/bin/tmux",
-		tmuxSocket:     TerminalTmuxSocket,
-		tmuxScopeUnit:  "hec-tmux",
-		infocmpPath:    "/usr/bin/infocmp",
-		gitPath:        "/usr/bin/git",
-		patchPath:      "/usr/bin/patch",
-		tarPath:        "/usr/bin/tar",
-		zstdPath:       "/usr/bin/zstd",
-		capabilityDir:  DefaultCapabilityDir,
+	dispatcher := &Dispatcher{
+		jobsDir:         JobRootDir,
+		jobKeysDir:      JobKeyDir,
+		mutationKeysDir: MutationKeyRootDir,
+		hecBinaryPath:   JobBinaryPath,
+		systemdRunPath:  "/usr/bin/systemd-run",
+		systemctlPath:   "/usr/bin/systemctl",
+		uploadsDir:      UploadRootDir,
+		artifactsDir:    ArtifactRootDir,
+		terminalsDir:    TerminalRootDir,
+		tmuxPath:        "/usr/bin/tmux",
+		tmuxSocket:      TerminalTmuxSocket,
+		tmuxScopeUnit:   "hec-tmux",
+		infocmpPath:     "/usr/bin/infocmp",
+		gitPath:         "/usr/bin/git",
+		patchPath:       "/usr/bin/patch",
+		tarPath:         "/usr/bin/tar",
+		zstdPath:        "/usr/bin/zstd",
+		capabilityDir:   DefaultCapabilityDir,
 		skillRoots: []skillRoot{
 			{Path: DefaultBuiltinSkillRoot, Source: "builtin"},
 			{Path: DefaultOwnerSkillRoot, Source: "owner"},
@@ -59,6 +62,8 @@ func NewDispatcher() *Dispatcher {
 		recipeDir:     DefaultRecipeDir,
 		commandPath:   os.Getenv("PATH"),
 	}
+	dispatcher.keyedState = newKeyedMutationStore(dispatcher.mutationKeysDir)
+	return dispatcher
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
@@ -66,7 +71,18 @@ func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
 	if operation == "" {
 		return failedResult("", "invalid_operation", "operation must be a nonempty string")
 	}
+	request.Operation = operation
+	if request.Args == nil {
+		request.Args = map[string]any{}
+	}
+	if request.IdempotencyKey != "" && isMutationOperation(operation) {
+		return d.dispatchKeyedMutation(ctx, request)
+	}
+	return d.dispatchNative(ctx, request)
+}
 
+func (d *Dispatcher) dispatchNative(ctx context.Context, request CallRequest) Result {
+	operation := request.Operation
 	switch operation {
 	case "health":
 		if len(request.Args) != 0 {
@@ -102,7 +118,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, request CallRequest) Result {
 	case "skill.read":
 		return d.skillRead(ctx, request.Args)
 	case "job.start":
-		return d.jobStart(ctx, request.Args, request.IdempotencyKey)
+		return d.jobStart(ctx, request.Args, "")
 	case "job.status":
 		return d.jobStatus(ctx, request.Args)
 	case "job.output":

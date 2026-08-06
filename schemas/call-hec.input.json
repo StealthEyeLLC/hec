@@ -314,7 +314,7 @@
                 "timeout_ms": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "Timeout in milliseconds. Zero or omission means no HEC timeout."
+                  "description": "Synchronous timeout in milliseconds, capped at 90000. Zero or omission uses the 90-second maximum."
                 },
                 "max_output_bytes": {
                   "type": "integer",
@@ -385,7 +385,7 @@
                 "timeout_ms": {
                   "type": "integer",
                   "minimum": 0,
-                  "description": "Timeout in milliseconds. Zero or omission means no HEC timeout."
+                  "description": "Synchronous timeout in milliseconds, capped at 90000. Zero or omission uses the 90-second maximum."
                 },
                 "max_output_bytes": {
                   "type": "integer",
@@ -407,7 +407,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for run and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -555,7 +555,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional duplicate-prevention key for job.start. Repeating the same key returns the original job handle instead of creating a second job."
+          "description": "Optional request key. Matching normalized retries return the same job; changed arguments conflict; ambiguous delivery is resolved only through the pre-recorded exact systemd unit."
         }
       },
       "additionalProperties": false
@@ -681,7 +681,7 @@
             "timeout_ms": {
               "type": "integer",
               "minimum": 0,
-              "description": "Maximum wait in milliseconds. Zero or omission waits until completion or request cancellation."
+              "description": "Maximum wait in milliseconds, capped at 15000. Zero or omission uses the 15-second maximum; a still-running job returns a normal running result."
             }
           },
           "additionalProperties": false
@@ -762,7 +762,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -826,7 +826,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1038,7 +1038,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1214,7 +1214,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1264,7 +1264,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1336,7 +1336,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1372,7 +1372,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for this operation and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1568,7 +1568,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for file.write and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1634,7 +1634,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for file.append and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1681,7 +1681,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for file.patch and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1725,7 +1725,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for file.remove and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1778,7 +1778,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for upload.begin and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1826,7 +1826,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for upload.chunk and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1914,7 +1914,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for upload.finish and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -1950,7 +1950,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for upload.abort and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -2003,7 +2003,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for artifact.return and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -2133,7 +2133,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for artifact.materialize and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false
@@ -2209,7 +2209,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "description": "Optional request key. It has no effect for artifact.delete and should normally be omitted."
+          "description": "Optional request key. Matching normalized retries replay the bounded prior result; changed arguments conflict; ambiguous orphaned execution is not rerun."
         }
       },
       "additionalProperties": false

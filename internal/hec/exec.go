@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 	"unicode/utf8"
 )
 
@@ -56,6 +55,10 @@ func (d *Dispatcher) run(ctx context.Context, raw map[string]any) Result {
 	if args.TimeoutMS < 0 {
 		return failedResult("run", "invalid_arguments", "timeout_ms must be greater than or equal to zero")
 	}
+	timeout, err := directRunTimeout(args.TimeoutMS)
+	if err != nil {
+		return failedResult("run", "invalid_arguments", "timeout_ms must be between 0 and 90000")
+	}
 	if args.MaxOutputBytes < 0 {
 		return failedResult("run", "invalid_arguments", "max_output_bytes must be greater than or equal to zero")
 	}
@@ -77,11 +80,7 @@ func (d *Dispatcher) run(ctx context.Context, raw map[string]any) Result {
 	stdout := limiter.writer()
 	stderr := limiter.writer()
 
-	execCtx := ctx
-	cancel := func() {}
-	if args.TimeoutMS > 0 {
-		execCtx, cancel = context.WithTimeout(ctx, time.Duration(args.TimeoutMS)*time.Millisecond)
-	}
+	execCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	var command *exec.Cmd
@@ -137,13 +136,13 @@ func (d *Dispatcher) run(ctx context.Context, raw map[string]any) Result {
 	case errors.Is(execCtx.Err(), context.DeadlineExceeded):
 		result.Status = StatusTimedOut
 		result.Error = &ErrorDetail{
-			Code:    "timeout",
-			Message: fmt.Sprintf("process timed out after %d ms", args.TimeoutMS),
+			Code:    "timed_out",
+			Message: fmt.Sprintf("process timed out after at most %d ms", timeout.Milliseconds()),
 		}
 		return result
 	case errors.Is(execCtx.Err(), context.Canceled):
 		result.Status = StatusCancelled
-		result.Error = &ErrorDetail{Code: "cancelled", Message: "process was cancelled"}
+		result.Error = &ErrorDetail{Code: "canceled", Message: "process was canceled"}
 		return result
 	case command.ProcessState == nil:
 		result.Status = StatusFailed

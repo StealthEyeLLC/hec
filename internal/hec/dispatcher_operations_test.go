@@ -28,7 +28,7 @@ func TestDispatcherOperationsMatchEmbeddedSchema(t *testing.T) {
 	var dispatcherOperations []string
 	for _, declaration := range parsed.Decls {
 		function, ok := declaration.(*ast.FuncDecl)
-		if !ok || function.Name.Name != "Dispatch" {
+		if !ok || function.Name.Name != "dispatchNative" {
 			continue
 		}
 		ast.Inspect(function.Body, func(node ast.Node) bool {

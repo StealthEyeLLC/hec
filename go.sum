@@ -48,6 +48,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/openai/tunnel-client v0.0.10 h1:7QBpMTy29FIJSclxtFYL/mff8jsU6QEhqHkAQ2PaDC8=
 github.com/openai/tunnel-client v0.0.10/go.mod h1:lHN4Mpxm0ldTNSZNGs/kT6YnpLmolm4U5aG6R7ihf/s=
+github.com/openai/tunnel-client v0.0.11-0.20260806014146-1bf01b0e1079 h1:4PG0JtOaJVEUuJZaustJmVPNmbB/YJNzycnn5ofkLxU=
+github.com/openai/tunnel-client v0.0.11-0.20260806014146-1bf01b0e1079/go.mod h1:lHN4Mpxm0ldTNSZNGs/kT6YnpLmolm4U5aG6R7ihf/s=
 github.com/panjf2000/ants/v2 v2.11.3 h1:AfI0ngBoXJmYOpDh9m516vjqoUu2sLrIVgppI9TZVpg=
 github.com/panjf2000/ants/v2 v2.11.3/go.mod h1:8u92CYMUc6gyvTIw8Ru7Mt7+/ESnJahz5EVtqfrilek=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

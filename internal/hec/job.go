@@ -133,8 +133,8 @@ func validateJobStartArgs(args jobStartArgs) error {
 	if args.Stdin != nil && args.StdinBase64 != nil {
 		return errors.New("job.start accepts only one of stdin or stdin_base64")
 	}
-	if args.TimeoutMS < 0 {
-		return errors.New("timeout_ms must be greater than or equal to zero")
+	if _, err := durationFromMilliseconds(args.TimeoutMS); err != nil {
+		return errors.New("timeout_ms must be greater than or equal to zero and within duration range")
 	}
 	if _, err := buildEnvironment(args.Env, args.UnsetEnv); err != nil {
 		return err
@@ -297,7 +297,7 @@ func (d *Dispatcher) launchJob(ctx context.Context, id string) error {
 		"job-run",
 		filepath.Join(jobDir, "spec.json"),
 	}
-	command := exec.CommandContext(context.WithoutCancel(ctx), d.systemdRunPath, arguments...)
+	command := exec.CommandContext(ctx, d.systemdRunPath, arguments...)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		message := strings.TrimSpace(string(output))
@@ -478,16 +478,16 @@ func (d *Dispatcher) readSystemdJobState(ctx context.Context, unit string) (syst
 			state.ExecMainStatus = value
 		}
 	}
-	if state.LoadState == "not-found" || state.LoadState == "" {
-		state.Present = false
-		return state, nil
-	}
 	if err != nil {
 		message := strings.TrimSpace(string(output))
 		if message == "" {
 			message = err.Error()
 		}
 		return systemdJobState{}, fmt.Errorf("read systemd job state: %s", message)
+	}
+	if state.LoadState == "not-found" || state.LoadState == "" {
+		state.Present = false
+		return state, nil
 	}
 	state.Present = true
 	return state, nil
@@ -590,52 +590,63 @@ func (d *Dispatcher) jobWait(ctx context.Context, raw map[string]any) Result {
 	if args.TimeoutMS < 0 {
 		return failedResult("job.wait", "invalid_arguments", "timeout_ms must be greater than or equal to zero")
 	}
-
-	var deadline time.Time
-	if args.TimeoutMS > 0 {
-		deadline = time.Now().Add(time.Duration(args.TimeoutMS) * time.Millisecond)
+	waitBudget, err := jobWaitTimeout(args.TimeoutMS)
+	if err != nil {
+		return failedResult("job.wait", "invalid_arguments", "timeout_ms must be between 0 and 15000")
 	}
+	if deadline, ok := ctx.Deadline(); ok {
+		remaining := time.Until(deadline)
+		if remaining < waitBudget {
+			waitBudget = remaining
+		}
+	}
+
 	for {
 		info, inspectErr := d.inspectJob(ctx, id)
 		if errors.Is(inspectErr, os.ErrNotExist) {
 			return jobNotFoundResult("job.wait", args.Handle)
 		}
 		if inspectErr != nil {
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return failedResult("job.wait", "canceled", "job wait was canceled")
+			}
 			return failedResult("job.wait", "job_wait_failed", inspectErr.Error())
 		}
 		if isTerminalJobStatus(info.JobStatus) {
-			result := newResult("job.wait")
-			result.OK = true
-			result.Handle = &args.Handle
-			result.Result = jobInfoResult(info)
-			result.Result["wait_timed_out"] = false
-			return result
+			return jobWaitResult(args.Handle, info, false)
 		}
-		if !deadline.IsZero() && !time.Now().Before(deadline) {
-			result := newResult("job.wait")
-			result.OK = true
-			result.Handle = &args.Handle
-			result.Result = jobInfoResult(info)
-			result.Result["wait_timed_out"] = true
-			return result
+		if waitBudget <= 0 {
+			return jobWaitResult(args.Handle, info, true)
 		}
+
 		wait := 200 * time.Millisecond
-		if !deadline.IsZero() {
-			remaining := time.Until(deadline)
-			if remaining < wait {
-				wait = remaining
-			}
+		if waitBudget < wait {
+			wait = waitBudget
 		}
+		started := time.Now()
 		timer := time.NewTimer(wait)
 		select {
 		case <-ctx.Done():
 			if !timer.Stop() {
 				<-timer.C
 			}
-			return failedResult("job.wait", "cancelled", "job wait was cancelled")
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return failedResult("job.wait", "canceled", "job wait was canceled")
+			}
+			return jobWaitResult(args.Handle, info, true)
 		case <-timer.C:
+			waitBudget -= time.Since(started)
 		}
 	}
+}
+
+func jobWaitResult(handle string, info jobInfo, waitTimedOut bool) Result {
+	result := newResult("job.wait")
+	result.OK = true
+	result.Handle = &handle
+	result.Result = jobInfoResult(info)
+	result.Result["wait_timed_out"] = waitTimedOut
+	return result
 }
 
 func isTerminalJobStatus(status string) bool {
@@ -829,28 +840,67 @@ func (d *Dispatcher) removeJobKeyMappings(id string) error {
 	if err != nil {
 		return err
 	}
-	defer unlockJobKeys(lock)
-	entries, err := os.ReadDir(d.jobKeysDir)
-	if err != nil {
-		return err
+	entries, readErr := os.ReadDir(d.jobKeysDir)
+	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
+		unlockJobKeys(lock)
+		return readErr
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || entry.Name() == ".lock" {
-			continue
-		}
-		if len(entry.Name()) != 64 {
+		if entry.IsDir() || entry.Name() == ".lock" || len(entry.Name()) != 64 {
 			continue
 		}
 		path := filepath.Join(d.jobKeysDir, entry.Name())
 		payload, readErr := os.ReadFile(path)
 		if readErr != nil {
+			unlockJobKeys(lock)
 			return readErr
 		}
 		if strings.TrimSpace(string(payload)) == id {
-			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if err := removeFileDurable(path); err != nil {
+				unlockJobKeys(lock)
 				return err
 			}
 		}
+	}
+	unlockJobKeys(lock)
+
+	store := d.keyedState
+	if store == nil || store.root != d.mutationKeysDir {
+		store = newKeyedMutationStore(d.mutationKeysDir)
+		d.keyedState = store
+	}
+	stateEntries, err := os.ReadDir(store.root)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, entry := range stateEntries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		digest := strings.TrimSuffix(name, ".json")
+		if store.isActive(digest) {
+			continue
+		}
+		stateLock, err := store.lock(digest)
+		if err != nil {
+			return err
+		}
+		record, found, readErr := store.read(digest)
+		if readErr != nil {
+			unlockKeyedMutation(stateLock)
+			return readErr
+		}
+		if found && record.Operation == "job.start" && record.Job != nil && record.Job.ID == id {
+			if err := removeFileDurable(store.statePath(digest)); err != nil {
+				unlockKeyedMutation(stateLock)
+				return err
+			}
+		}
+		unlockKeyedMutation(stateLock)
 	}
 	return nil
 }
