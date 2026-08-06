@@ -1,0 +1,7 @@
+id = "containers.docker"
+description = "Build and run OCI containers with official Docker Engine, Buildx, and Compose alongside Podman and Incus"
+tags = ["docker", "container", "oci", "buildx", "compose"]
+commands = ["docker"]
+skills = []
+recipe = "install-docker.sh"
+approximate_disk_class = "system"

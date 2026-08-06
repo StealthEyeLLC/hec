@@ -1,0 +1,7 @@
+id = "javascript.corepack"
+description = "Use exact pnpm and Yarn releases managed by Corepack while preserving the native Node.js and npm installation"
+tags = ["javascript", "node", "corepack", "pnpm", "yarn"]
+commands = ["corepack", "pnpm", "yarn"]
+skills = []
+recipe = "install-corepack.sh"
+approximate_disk_class = "small"

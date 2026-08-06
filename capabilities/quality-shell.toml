@@ -1,0 +1,7 @@
+id = "quality.shell"
+description = "Check and format shell scripts with ShellCheck and shfmt"
+tags = ["quality", "shell", "shellcheck", "shfmt", "lint", "format"]
+commands = ["shellcheck", "shfmt"]
+skills = []
+recipe = "install-apt-extended.sh"
+approximate_disk_class = "small"

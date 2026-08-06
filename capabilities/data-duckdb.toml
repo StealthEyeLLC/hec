@@ -1,0 +1,7 @@
+id = "data.duckdb"
+description = "Query local and remote analytical data with the pinned DuckDB CLI"
+tags = ["data", "analytics", "sql", "duckdb"]
+commands = ["duckdb"]
+skills = []
+recipe = "install-data-tools.sh"
+approximate_disk_class = "medium"

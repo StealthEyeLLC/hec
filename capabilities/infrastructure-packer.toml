@@ -1,0 +1,7 @@
+id = "infrastructure.packer"
+description = "Build machine images with pinned Packer"
+tags = ["infrastructure", "image", "packer", "virtual-machine"]
+commands = ["packer"]
+skills = []
+recipe = "install-infrastructure-tools.sh"
+approximate_disk_class = "medium"

@@ -1,0 +1,7 @@
+id = "infrastructure.opentofu"
+description = "Plan and apply infrastructure as code with pinned OpenTofu"
+tags = ["infrastructure", "iac", "opentofu", "terraform-compatible"]
+commands = ["tofu"]
+skills = []
+recipe = "install-infrastructure-tools.sh"
+approximate_disk_class = "medium"

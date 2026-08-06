@@ -1,0 +1,7 @@
+id = "quality.structured-code"
+description = "Search and validate structured source with ast-grep, tree-sitter, editorconfig-checker, tokei, and Semgrep"
+tags = ["quality", "ast", "search", "tree-sitter", "semgrep", "editorconfig", "tokei"]
+commands = ["ast-grep", "tree-sitter", "ec", "tokei", "semgrep"]
+skills = []
+recipe = "install-quality-tools.sh"
+approximate_disk_class = "medium"

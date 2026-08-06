@@ -1,0 +1,7 @@
+id = "forge.mise"
+description = "Manage pinned project runtimes and selected standalone tools with mise"
+tags = ["forge", "mise", "runtime", "toolchain"]
+commands = ["mise"]
+skills = []
+recipe = "install-mise.sh"
+approximate_disk_class = "small"

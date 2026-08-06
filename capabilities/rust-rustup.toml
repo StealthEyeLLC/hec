@@ -1,0 +1,7 @@
+id = "rust.rustup"
+description = "Build and check Rust projects with an exact rustup-managed toolchain"
+tags = ["rust", "rustup", "cargo", "rustc", "rustfmt", "clippy"]
+commands = ["rustup", "rustc", "cargo", "rustfmt"]
+skills = []
+recipe = "install-rust-toolchain.sh"
+approximate_disk_class = "large"

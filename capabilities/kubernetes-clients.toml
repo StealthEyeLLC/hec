@@ -1,0 +1,7 @@
+id = "kubernetes.clients"
+description = "Operate Kubernetes APIs and local-cluster tooling with pinned clients without starting a cluster"
+tags = ["kubernetes", "kubectl", "helm", "kustomize", "k9s", "kind", "k3d", "oci"]
+commands = ["kubectl", "helm", "kustomize", "k9s", "stern", "kind", "k3d", "crictl", "oras", "regctl"]
+skills = []
+recipe = "install-kubernetes-tools.sh"
+approximate_disk_class = "large"

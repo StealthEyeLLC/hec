@@ -1,0 +1,7 @@
+id = "data.csvkit"
+description = "Inspect and transform tabular text with csvkit in an isolated uv tool environment"
+tags = ["data", "csv", "tabular", "python", "csvkit"]
+commands = ["csvcut", "csvformat", "csvgrep", "csvsql"]
+skills = []
+recipe = "install-data-tools.sh"
+approximate_disk_class = "medium"

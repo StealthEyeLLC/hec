@@ -1,0 +1,7 @@
+id = "infrastructure.terragrunt"
+description = "Compose and orchestrate OpenTofu configurations with pinned Terragrunt"
+tags = ["infrastructure", "iac", "terragrunt", "opentofu"]
+commands = ["terragrunt"]
+skills = []
+recipe = "install-infrastructure-tools.sh"
+approximate_disk_class = "medium"

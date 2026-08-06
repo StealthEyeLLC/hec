@@ -1,0 +1,7 @@
+id = "javascript.deno"
+description = "Run JavaScript and TypeScript with the pinned Deno runtime"
+tags = ["javascript", "typescript", "deno", "runtime"]
+commands = ["deno"]
+skills = []
+recipe = "install-javascript-runtimes.sh"
+approximate_disk_class = "medium"

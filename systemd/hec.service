@@ -8,7 +8,7 @@ Type=simple
 User=root
 EnvironmentFile=-/etc/hec/hec.env
 EnvironmentFile=/etc/hec/tunnel.env
-Environment=PATH=/opt/hec/current/bin:/opt/hec/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH=/opt/hec/current/bin:/opt/hec/bin:/root/.local/bin:/root/.local/share/mise/shims:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RuntimeDirectory=hec
 RuntimeDirectoryPreserve=yes
 StateDirectory=hec

@@ -1,0 +1,7 @@
+id = "security.supply-chain"
+description = "Inspect software artifacts with pinned vulnerability, SBOM, signing, and secret-scanning CLIs"
+tags = ["security", "supply-chain", "vulnerability", "sbom", "signing", "secrets"]
+commands = ["trivy", "syft", "grype", "cosign", "osv-scanner", "gitleaks"]
+skills = []
+recipe = "install-security-tools.sh"
+approximate_disk_class = "large"

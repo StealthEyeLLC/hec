@@ -1,0 +1,7 @@
+id = "javascript.bun"
+description = "Run JavaScript and TypeScript with the pinned Bun runtime"
+tags = ["javascript", "typescript", "bun", "runtime"]
+commands = ["bun"]
+skills = []
+recipe = "install-javascript-runtimes.sh"
+approximate_disk_class = "medium"

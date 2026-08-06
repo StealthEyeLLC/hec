@@ -28,6 +28,9 @@ install -d -m 0755 \
   "$RELEASES_DIR" \
   /etc/hec \
   /etc/hec/skills \
+  /root/.local/bin \
+  /root/.local/share/mise/shims \
+  /root/.cargo/bin \
   /var/lib/hec \
   /var/cache/hec \
   /run/hec
@@ -69,6 +72,12 @@ mv -Tf "$CURRENT_LINK" /opt/hec/current
 CURRENT_LINK=
 
 install -m 0644 "$ROOT_DIR/systemd/hec.service" /etc/systemd/system/hec.service
+if [[ ! -e /etc/hec/hec.env ]]; then
+  install -m 0600 /dev/null /etc/hec/hec.env
+else
+  chown root:root /etc/hec/hec.env
+  chmod 0600 /etc/hec/hec.env
+fi
 if [[ ! -e /etc/hec/tunnel.env ]]; then
   install -m 0600 /dev/null /etc/hec/tunnel.env
 else

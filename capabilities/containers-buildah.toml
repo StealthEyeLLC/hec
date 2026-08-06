@@ -1,0 +1,7 @@
+id = "containers.buildah"
+description = "Build OCI images with Buildah while preserving Podman, Skopeo, crun, and Incus"
+tags = ["buildah", "podman", "container", "oci", "image"]
+commands = ["buildah"]
+skills = []
+recipe = "install-apt-extended.sh"
+approximate_disk_class = "system"

@@ -16,6 +16,14 @@ Treat forge recipes as checked-in files that describe optional installation work
 
 Use `run` for short noninteractive installers, `job.start` for long durable installations, and `terminal.open` for interactive installers or tools.
 
+## Installed core forge
+
+The core forge uses pinned native managers and commands. `mise` is installed for project runtimes and selected standalone tools with `MISE_TRUSTED_CONFIG_PATHS=/`. `uv` and `uvx` provide isolated Python environments and tools without replacing Ubuntu's system Python. Rust is managed through the existing apt-provided `rustup` installation. Corepack manages the recorded pnpm and Yarn releases, while Bun and Deno are available through mise.
+
+Docker Engine coexists with Podman, Skopeo, crun, Incus, and QEMU/KVM. Use the native CLI appropriate to the task; HEC adds no container abstraction. Query `capabilities` before assuming an optional command or grouped capability is present.
+
+Recipes remain ordinary checked-in shell files and run only when deliberately invoked. Heavy desktop, CAD, mobile, database-server, science, and extra-browser layers remain deferred.
+
 ## Playwright
 
 Query `capabilities` for `browser.playwright`, locate the `playwright-cli` Skill with `skill.find`, and read it before substantial browser work. Invoke the installed `playwright-cli` command through `run` for bounded work or a persistent terminal for long interactive debugging. Use named sessions, dedicated profiles and output directories, and return generated screenshots, downloads, traces, videos, or PDFs through HEC artifacts. HEC does not add browser-specific operations or a browser wrapper.

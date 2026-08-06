@@ -1,0 +1,7 @@
+id = "python.uv"
+description = "Create isolated Python environments and run Python tools with uv and uvx without modifying system Python"
+tags = ["python", "uv", "uvx", "environment", "tool"]
+commands = ["uv", "uvx"]
+skills = []
+recipe = "install-uv.sh"
+approximate_disk_class = "small"
