@@ -3,8 +3,12 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 GOROOT=/opt/hec/toolchains/go/1.26.2
+HOME=${HOME:-/root}
+GOPATH=${GOPATH:-/root/go}
+GOMODCACHE=${GOMODCACHE:-$GOPATH/pkg/mod}
+GOCACHE=${GOCACHE:-/root/.cache/go-build}
 PATH="$GOROOT/bin:$PATH"
-export GOROOT PATH
+export GOROOT HOME GOPATH GOMODCACHE GOCACHE PATH
 
 VERSION=${HEC_VERSION:-0.0.1}
 COMMIT=$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || printf unknown)
