@@ -310,12 +310,17 @@ func discoverWorkspaceSkillRoots(workspaceRoot string) []skillRoot {
 	}
 	roots := make([]skillRoot, 0, len(entries))
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if entry.Type()&os.ModeSymlink != 0 || !entry.IsDir() || !validWorkspaceName(entry.Name()) {
 			continue
 		}
-		path := filepath.Join(workspaceRoot, entry.Name(), ".hec", "skills")
-		info, err := os.Stat(path)
-		if err == nil && info.IsDir() {
+		hecPath := filepath.Join(workspaceRoot, entry.Name(), ".hec")
+		hecInfo, err := os.Lstat(hecPath)
+		if err != nil || hecInfo.Mode()&os.ModeSymlink != 0 || !hecInfo.IsDir() {
+			continue
+		}
+		path := filepath.Join(hecPath, "skills")
+		info, err := os.Lstat(path)
+		if err == nil && info.Mode()&os.ModeSymlink == 0 && info.IsDir() {
 			roots = append(roots, skillRoot{Path: path, Source: "workspace"})
 		}
 	}

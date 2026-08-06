@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 
 	hecschemas "github.com/StealthEyeLLC/hec/schemas"
@@ -70,8 +71,13 @@ func TestDispatcherOperationsMatchEmbeddedSchema(t *testing.T) {
 		t.Fatalf("dispatcher operations = %#v, schema operations = %#v", dispatcherOperations, schemaOperations)
 	}
 	for _, operation := range dispatcherOperations {
-		if operation == "browser.open" || operation == "workspace.create" {
-			t.Fatalf("Slice 6 operation advertised: %s", operation)
+		if operation == "browser.open" {
+			t.Fatalf("browser operation advertised: %s", operation)
+		}
+		for _, forbidden := range []string{"workspace.", "repository.", "delivery.", "worktree."} {
+			if strings.HasPrefix(operation, forbidden) {
+				t.Fatalf("Slice 8 controller operation advertised: %s", operation)
+			}
 		}
 	}
 }

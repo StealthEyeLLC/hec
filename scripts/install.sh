@@ -31,6 +31,10 @@ install -d -m 0755 \
   /root/.local/bin \
   /root/.local/share/mise/shims \
   /root/.cargo/bin \
+  /srv/hec \
+  /srv/hec/workspaces \
+  /srv/hec/repositories \
+  /srv/hec/deliveries \
   /var/lib/hec \
   /var/cache/hec \
   /run/hec

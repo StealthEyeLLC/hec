@@ -29,16 +29,25 @@ type capabilitiesArgs struct {
 }
 
 type CapabilityCard struct {
-	ID                   string   `json:"id"`
-	Description          string   `json:"description"`
-	Installed            bool     `json:"installed"`
-	Commands             []string `json:"commands"`
-	Skills               []string `json:"skills"`
-	Recipe               *string  `json:"recipe"`
-	Operation            string   `json:"operation,omitempty"`
-	Tags                 []string `json:"tags,omitempty"`
-	Source               string   `json:"source,omitempty"`
-	ApproximateDiskClass string   `json:"approximate_disk_class,omitempty"`
+	ID                   string    `json:"id"`
+	Description          string    `json:"description"`
+	Installed            bool      `json:"installed"`
+	Commands             []string  `json:"commands"`
+	Skills               []string  `json:"skills"`
+	Recipe               *string   `json:"recipe"`
+	Operation            string    `json:"operation,omitempty"`
+	Tags                 []string  `json:"tags,omitempty"`
+	Source               string    `json:"source,omitempty"`
+	ApproximateDiskClass string    `json:"approximate_disk_class,omitempty"`
+	Name                 string    `json:"name,omitempty"`
+	Location             string    `json:"location,omitempty"`
+	Repository           string    `json:"repository,omitempty"`
+	RepositoryExists     *bool     `json:"repository_exists,omitempty"`
+	RepositoryKind       string    `json:"repository_kind,omitempty"`
+	DefaultCWD           string    `json:"default_cwd,omitempty"`
+	EnvironmentKeys      *[]string `json:"environment_keys,omitempty"`
+	Notes                string    `json:"notes,omitempty"`
+	AdditionalMetadata   []string  `json:"-"`
 }
 
 type capabilityManifest struct {
@@ -117,7 +126,7 @@ func (d *Dispatcher) capabilities(_ context.Context, raw map[string]any) Result 
 		includeMissing = *args.IncludeMissing
 	}
 
-	cards, err := d.collectCapabilities()
+	cards, warnings, err := d.collectCapabilities()
 	if err != nil {
 		return failedResult("capabilities", "capability_discovery_failed", err.Error())
 	}
@@ -153,11 +162,28 @@ func (d *Dispatcher) capabilities(_ context.Context, raw map[string]any) Result 
 		}
 		ranked := make([]rankedCard, 0, len(filtered))
 		for _, card := range filtered {
-			fields := []string{card.ID, card.Operation, card.Description, strings.Join(card.Tags, " "), strings.Join(card.Commands, " "), strings.Join(card.Skills, " ")}
+			fields := []string{
+				card.ID,
+				card.Operation,
+				card.Description,
+				card.Name,
+				card.Notes,
+				card.Location,
+				card.Repository,
+				card.DefaultCWD,
+				card.RepositoryKind,
+				strings.Join(card.Tags, " "),
+				strings.Join(card.Commands, " "),
+				strings.Join(card.Skills, " "),
+			}
+			fields = append(fields, card.AdditionalMetadata...)
+			if card.EnvironmentKeys != nil {
+				fields = append(fields, strings.Join(*card.EnvironmentKeys, " "))
+			}
 			if card.Recipe != nil {
 				fields = append(fields, *card.Recipe)
 			}
-			exactFields := []string{card.ID, card.Operation}
+			exactFields := []string{card.ID, card.Operation, card.Name, card.Location, card.Repository, card.DefaultCWD}
 			exactFields = append(exactFields, card.Commands...)
 			exactFields = append(exactFields, card.Skills...)
 			if card.Recipe != nil {
@@ -195,42 +221,52 @@ func (d *Dispatcher) capabilities(_ context.Context, raw map[string]any) Result 
 	if args.Query != nil {
 		result.Result["query"] = query
 	}
+	if len(warnings) > 0 {
+		result.Result["warnings"] = warnings
+	}
 	return result
 }
 
-func (d *Dispatcher) collectCapabilities() ([]CapabilityCard, error) {
+func (d *Dispatcher) collectCapabilities() ([]CapabilityCard, []string, error) {
 	schemaData := d.operationSchema
 	if len(schemaData) == 0 {
 		schemaData = hecschemas.CallHECInput
 	}
 	operations, err := extractOperationCapabilities(schemaData)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	skills, _ := d.discoverSkills()
+	skills, warnings := d.discoverSkills()
 	skillNames := make(map[string]bool, len(skills))
 	for _, skill := range skills {
 		skillNames[skill.Name] = true
 	}
 	manifests, err := loadCapabilityManifestDir(d.capabilityDir, d.recipeDir, d.commandPath, skillNames)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	workspaces, workspaceWarnings, err := discoverWorkspaceCapabilities(d.workspaceRoot, d.gitPath, skills)
+	if err != nil {
+		return nil, nil, err
+	}
+	warnings = append(warnings, workspaceWarnings...)
+	sort.Strings(warnings)
 
 	cards := append([]CapabilityCard(nil), operations...)
 	cards = append(cards, manifestCapabilityCards(manifests)...)
 	cards = append(cards, skillCapabilityCards(skills)...)
 	cards = append(cards, recipeCapabilityCards(d.recipeDir, manifests)...)
+	cards = append(cards, workspaces...)
 
 	seen := make(map[string]bool, len(cards))
 	for _, card := range cards {
 		if seen[card.ID] {
-			return nil, fmt.Errorf("duplicate capability id %q", card.ID)
+			return nil, nil, fmt.Errorf("duplicate capability id %q", card.ID)
 		}
 		seen[card.ID] = true
 	}
-	return cards, nil
+	return cards, warnings, nil
 }
 
 func extractOperationCapabilities(data []byte) ([]CapabilityCard, error) {
