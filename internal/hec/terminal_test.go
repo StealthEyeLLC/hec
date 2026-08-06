@@ -108,6 +108,19 @@ func TestNormalizeTerminalOpenArgs(t *testing.T) {
 }
 
 func TestTerminalEnvironmentHandling(t *testing.T) {
+	defaultEnvironment, err := buildTerminalEnvironment("tmux-256color", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultValues := map[string]string{}
+	for _, entry := range defaultEnvironment {
+		name, value, _ := strings.Cut(entry, "=")
+		defaultValues[name] = value
+	}
+	if !strings.Contains(":"+defaultValues["PATH"]+":", ":/root/.local/share/mise/shims:") {
+		t.Fatalf("default PATH does not include mise shims: %q", defaultValues["PATH"])
+	}
+
 	environment, err := buildTerminalEnvironment("tmux-256color", map[string]string{
 		"CUSTOM": "value",
 		"PATH":   "/custom/bin",
@@ -147,13 +160,14 @@ func TestTerminalMetadataEncodingAndDecoding(t *testing.T) {
 		t.Fatal(err)
 	}
 	metadata := TerminalMetadata{
-		ID:        testTerminalID,
-		Handle:    terminalHandle(testTerminalID),
-		Name:      "unit terminal",
-		Session:   terminalSessionName(testTerminalID),
-		CreatedAt: time.Now().UTC().Format(time.RFC3339Nano),
-		Width:     120,
-		Height:    40,
+		ID:         testTerminalID,
+		Handle:     terminalHandle(testTerminalID),
+		Name:       "unit terminal",
+		Session:    terminalSessionName(testTerminalID),
+		CreatedAt:  time.Now().UTC().Format(time.RFC3339Nano),
+		Width:      120,
+		Height:     40,
+		ExitSignal: "SIGTERM",
 	}
 	if err := writeJSONAtomic(terminalMetadataPath(root, testTerminalID), metadata, 0600); err != nil {
 		t.Fatal(err)

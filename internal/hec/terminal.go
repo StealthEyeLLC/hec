@@ -437,6 +437,10 @@ func (d *Dispatcher) inspectTerminal(ctx context.Context, id string) (TerminalMe
 	if err != nil {
 		return metadata, pane, stateExists, true, err
 	}
+	if pane.Dead && pane.Signal == nil && pane.ExitCode == nil && metadata.ExitSignal != "" {
+		signal := metadata.ExitSignal
+		pane.Signal = &signal
+	}
 	if !pane.Dead {
 		if _, err := os.Stat(terminalSpecPath(d.terminalsDir, id)); err == nil {
 			pane.TerminalStatus = TerminalStatusStarting
@@ -838,7 +842,7 @@ func (d *Dispatcher) terminalSignal(ctx context.Context, raw map[string]any) Res
 	if err != nil {
 		return failedResult("terminal.signal", "invalid_arguments", err.Error())
 	}
-	_, pane, _, sessionExists, err := d.inspectTerminal(ctx, id)
+	metadata, pane, stateExists, sessionExists, err := d.inspectTerminal(ctx, id)
 	if errors.Is(err, os.ErrNotExist) {
 		return failedResult("terminal.signal", "not_found", "terminal not found")
 	}
@@ -858,6 +862,12 @@ func (d *Dispatcher) terminalSignal(ctx context.Context, raw map[string]any) Res
 	status := pane.TerminalStatus
 	if _, updated, _, _, inspectErr := d.inspectTerminal(ctx, id); inspectErr == nil {
 		status = updated.TerminalStatus
+		if stateExists && updated.TerminalStatus == TerminalStatusExited && updated.Signal == nil && updated.ExitCode == nil {
+			metadata.ExitSignal = signalName
+			if err := writeJSONAtomic(terminalMetadataPath(d.terminalsDir, id), metadata, 0600); err != nil {
+				return failedResult("terminal.signal", "terminal_signal_failed", fmt.Sprintf("persist observed terminal exit signal: %v", err))
+			}
+		}
 	}
 	result := newResult("terminal.signal")
 	result.OK = true

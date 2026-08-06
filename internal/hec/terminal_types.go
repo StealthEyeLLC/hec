@@ -31,7 +31,7 @@ const (
 	DefaultTerminalOutputLimit = int64(262144)
 	MaximumTerminalWriteBytes  = int64(1 << 20)
 	TerminalHistoryLimit       = 100000
-	terminalPathEnvironment    = "/opt/hec/current/bin:/opt/hec/bin:/root/.local/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	terminalPathEnvironment    = "/opt/hec/current/bin:/opt/hec/bin:/root/.local/bin:/root/.local/share/mise/shims:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 )
 
 const (
@@ -87,13 +87,14 @@ type terminalHandleArgs struct {
 }
 
 type TerminalMetadata struct {
-	ID        string `json:"id"`
-	Handle    string `json:"handle"`
-	Name      string `json:"name,omitempty"`
-	Session   string `json:"session"`
-	CreatedAt string `json:"created_at"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
+	ID         string `json:"id"`
+	Handle     string `json:"handle"`
+	Name       string `json:"name,omitempty"`
+	Session    string `json:"session"`
+	CreatedAt  string `json:"created_at"`
+	Width      int    `json:"width"`
+	Height     int    `json:"height"`
+	ExitSignal string `json:"exit_signal,omitempty"`
 }
 
 type terminalLaunchSpec struct {
@@ -308,6 +309,12 @@ func loadTerminalMetadata(root, id string) (TerminalMetadata, error) {
 	}
 	if err := validateTerminalDimension(metadata.Height, "height"); err != nil {
 		return metadata, err
+	}
+	if metadata.ExitSignal != "" {
+		_, normalized, err := parseLinuxSignalName(metadata.ExitSignal)
+		if err != nil || normalized != metadata.ExitSignal {
+			return metadata, errors.New("terminal metadata has an invalid exit signal")
+		}
 	}
 	return metadata, nil
 }
