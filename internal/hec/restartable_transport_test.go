@@ -2,9 +2,11 @@ package hec
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -185,18 +187,71 @@ func waitForLiveMCPSessions(t *testing.T, transport *restartableMCPTransport, wa
 	}
 }
 
-func TestRestartableTransportConnectContextCancellationClosesMatchingSession(t *testing.T) {
+func TestRestartableTransportEstablishedConnectionSurvivesConnectContextCancellation(t *testing.T) {
 	rootCtx, cancelRoot := context.WithCancel(context.Background())
 	defer cancelRoot()
 	transport := newRestartableMCPTransport(rootCtx, NewMCPServer(NewDispatcher()))
 	defer transport.Close()
 	connectCtx, cancelConnect := context.WithCancel(context.Background())
-	if _, err := transport.Connect(connectCtx); err != nil {
+	connection, err := transport.Connect(connectCtx)
+	if err != nil {
 		t.Fatal(err)
 	}
-	waitForLiveMCPSessions(t, transport, 1)
+	defer connection.Close()
 	cancelConnect()
-	waitForLiveMCPSessions(t, transport, 0)
+
+	transport.mu.Lock()
+	var session *restartableMCPSession
+	for _, candidate := range transport.sessions {
+		session = candidate
+	}
+	transport.mu.Unlock()
+	if session == nil {
+		t.Fatal("matching server session missing")
+	}
+	select {
+	case <-session.ctx.Done():
+		t.Fatal("short-lived Connect context canceled the established MCP session")
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	initializeID, err := jsonrpc.MakeID(float64(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	params, err := json.Marshal(map[string]any{
+		"protocolVersion": "2025-06-18",
+		"capabilities":    map[string]any{},
+		"clientInfo":      map[string]any{"name": "connect-context-regression", "version": "1"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := connection.Write(context.Background(), &jsonrpc.Request{ID: initializeID, Method: "initialize", Params: params}); err != nil {
+		t.Fatal(err)
+	}
+	readCtx, cancelRead := context.WithTimeout(context.Background(), time.Second)
+	defer cancelRead()
+	for {
+		message, err := connection.Read(readCtx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch typed := message.(type) {
+		case *jsonrpc.Request:
+			if typed.ID.IsValid() {
+				t.Fatalf("unexpected server request = %#v", typed)
+			}
+			continue
+		case *jsonrpc.Response:
+			if typed.Error != nil {
+				t.Fatalf("initialize response = %#v", typed)
+			}
+			return
+		default:
+			t.Fatalf("initialize response type = %T", message)
+		}
+	}
 }
 
 func TestRestartableTransportCarriesConnectDeadlineIntoServerSession(t *testing.T) {

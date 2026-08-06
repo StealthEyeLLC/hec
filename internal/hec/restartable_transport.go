@@ -28,16 +28,15 @@ type restartableMCPTransport struct {
 }
 
 type restartableMCPSession struct {
-	owner           *restartableMCPTransport
-	id              uint64
-	ctx             context.Context
-	cancel          context.CancelFunc
-	client          mcp.Connection
-	serverSession   *mcp.ServerSession
-	closing         atomic.Bool
-	closeOnce       sync.Once
-	done            chan struct{}
-	stopCallerWatch func() bool
+	owner         *restartableMCPTransport
+	id            uint64
+	ctx           context.Context
+	cancel        context.CancelFunc
+	client        mcp.Connection
+	serverSession *mcp.ServerSession
+	closing       atomic.Bool
+	closeOnce     sync.Once
+	done          chan struct{}
 }
 
 type restartableMCPConnection struct {
@@ -117,7 +116,6 @@ func (t *restartableMCPTransport) Connect(ctx context.Context) (mcp.Connection, 
 		serverSession: serverSession,
 		done:          make(chan struct{}),
 	}
-	session.stopCallerWatch = context.AfterFunc(ctx, func() { session.close(true) })
 	t.sessions[session.id] = session
 	t.mu.Unlock()
 
@@ -205,9 +203,6 @@ func (s *restartableMCPSession) close(intentional bool) {
 	}
 	s.closeOnce.Do(func() {
 		s.closing.Store(true)
-		if s.stopCallerWatch != nil {
-			s.stopCallerWatch()
-		}
 		s.cancel()
 		if s.client != nil {
 			_ = s.client.Close()
