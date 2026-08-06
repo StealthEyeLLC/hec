@@ -91,6 +91,8 @@ version
 - no permanent forge container;
 - no SEZU or Baby runtime dependency.
 
+HEC may retain minimal, bounded, internal keyed mutation state solely to prevent duplicate native side effects after ambiguous ChatGPT or tunnel delivery. This state does not create a public receipt API, audit log, evidence system, workflow ledger, universal history, or generalized command cache.
+
 ## Deferred until real operation
 
 The initial build does not include:

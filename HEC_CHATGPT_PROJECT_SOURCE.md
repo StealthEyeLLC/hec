@@ -178,7 +178,7 @@ one stable public tool: call_hec
 
 - Implementation language: Go.
 - Initial Go version: 1.26.2.
-- Tunnel library: `github.com/openai/tunnel-client` v0.0.10.
+- Tunnel library: `github.com/openai/tunnel-client` v0.0.11-0.20260806014146-1bf01b0e1079, pinned to reviewed upstream commit `1bf01b0e1079b097b445a6fe5ddfc4048dd6fe45`.
 - MCP SDK: `github.com/modelcontextprotocol/go-sdk` v1.4.1.
 - HEC binary: `/opt/hec/current/bin/hec`.
 - Permanent HEC services: exactly one, `hec.service`.
@@ -188,7 +188,7 @@ one stable public tool: call_hec
 - Supervisor socket: none.
 - Separate gateway daemon: none.
 - Node runtime dependency for HEC core: none.
-- Embedded Secure MCP Tunnel and MCP server run in one process using in-memory transport.
+- Embedded Secure MCP Tunnel and MCP server run in one process using a HEC-owned restartable in-memory transport; every connection receives a fresh transport pair and server session.
 
 The same binary supplies:
 
@@ -199,7 +199,11 @@ hec job-run
 hec version
 ```
 
-If embedding the tunnel proves concretely troublesome during implementation, the smallest acceptable fallback is a separate `hec-tunnel.service`. Do not redesign the rest of HEC around that fallback.
+There is no sidecar, local fallback transport, or second execution plane.
+
+Public `call_hec` dispatch has exactly one context-aware slot. Direct calls are bounded to 90 seconds, each `job.wait` invocation to 15 seconds, response delivery reserves 10 seconds, and gate acquisition is bounded to 10 seconds. A tunnel generation has a 60-second readiness bound, a 5-second stop bound, and a 10-second complete-cleanup bound. Old generations must reach zero workers before replacement; cleanup timeout exits HEC for a clean systemd restart.
+
+HEC may retain minimal, bounded, internal keyed mutation state solely to prevent duplicate native side effects after ambiguous ChatGPT or tunnel delivery. This state does not create a public receipt API, audit log, evidence system, workflow ledger, universal history, or generalized command cache.
 
 ---
 
@@ -335,7 +339,7 @@ job.forget
 
 Output is read by byte offset.
 
-Only durable job creation uses an optional idempotency key. Repeating the same key returns the existing job instead of starting a duplicate.
+Native mutations may use an optional idempotency key. HEC binds the key to the normalized request, durably records `in_progress` before the native effect, and durably records `completed` before returning. Matching completed requests replay, changed requests conflict, and orphaned ambiguous effects report uncertainty. `job.start` records one exact job ID and systemd unit before launch so an ambiguous response cannot create a second unit.
 
 No automatic retry occurs.
 

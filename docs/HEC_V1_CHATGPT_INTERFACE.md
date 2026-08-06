@@ -88,7 +88,7 @@ Prefer direct `argv` when the command is already naturally tokenized. Use `comma
 - output should be read incrementally;
 - the operation is noninteractive.
 
-Use an idempotency key when a failed ChatGPT response could otherwise cause the same long job to be started twice.
+Use an idempotency key when ambiguous ChatGPT or tunnel delivery could otherwise repeat a native mutation. Matching completed requests replay, changed arguments conflict, and ambiguous orphaned effects report uncertainty instead of running again.
 
 ### Use a terminal when
 
@@ -312,7 +312,7 @@ job.output
 
 recover the process and output.
 
-If the caller used an idempotency key, repeating `job.start` with that key returns the existing job handle.
+If the caller used an idempotency key, repeating the same normalized `job.start` returns the same job. Changed arguments conflict. HEC resolves an ambiguous launch only through the pre-recorded exact systemd unit and never allocates a second unit for that key.
 
 ### Terminal
 

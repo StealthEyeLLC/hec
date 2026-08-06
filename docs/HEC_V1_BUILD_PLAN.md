@@ -80,7 +80,7 @@ Makefile or simple scripts/build.sh
 Core module dependencies:
 
 ```text
-github.com/openai/tunnel-client v0.0.10
+github.com/openai/tunnel-client v0.0.11-0.20260806014146-1bf01b0e1079
 github.com/modelcontextprotocol/go-sdk v1.4.1
 ```
 
@@ -109,37 +109,18 @@ Do not replace Ubuntu's packages or existing Node/Python toolchains.
 
 In `hec serve`:
 
-1. create the MCP server;
-2. register one tool named `call_hec`;
-3. create an MCP in-memory transport pair;
-4. run the MCP server on one side;
-5. create the OpenAI tunnel client with the other side;
-6. run until the service context is cancelled.
+1. create a disposable tunnel generation context;
+2. create a restartable HEC-owned MCP transport;
+3. construct a fresh tunnel client pinned to the reviewed upstream commit;
+4. wait at most 60 seconds for readiness;
+5. serve until root cancellation or generation failure;
+6. cancel the generation, stop the client within 5 seconds, close every connection and server session, and wait at most 10 seconds for zero workers;
+7. create a replacement only after complete cleanup;
+8. exit for systemd restart if cleanup cannot complete, rather than overlap generations.
 
-Conceptual skeleton:
+Every transport `Connect` creates a fresh `mcp.NewInMemoryTransports()` pair and fresh MCP server session. The caller context is carried into that session, and closing the client connection cancels and closes the matching session. No closed pair is reused.
 
-```go
-server := mcp.NewServer(
-    &mcp.Implementation{Name: "hec", Version: version},
-    nil,
-)
-
-server.AddTool(callHecTool, callHecHandler)
-
-serverTransport, tunnelTransport := mcp.NewInMemoryTransports()
-go server.Run(ctx, serverTransport)
-
-client, err := tunnelclient.New(tunnelclient.Config{
-    TunnelID: os.Getenv("CONTROL_PLANE_TUNNEL_ID"),
-    APIKey:   os.Getenv("CONTROL_PLANE_API_KEY"),
-}, tunnelTransport)
-if err != nil {
-    return err
-}
-return client.Run(ctx)
-```
-
-Use the exact API exposed by the pinned modules during implementation; the above is the current official pattern.
+The tunnel client is pinned to upstream commit `1bf01b0e1079b097b445a6fe5ddfc4048dd6fe45`, which implements poll-receipt-based `response_timeout`, command deadline propagation, expired-command dropping, and late-response suppression.
 
 ### 5.3 Implement the first operations
 
@@ -252,17 +233,19 @@ systemd-run \
 
 Do not use `--collect` initially. HEC can inspect the unit while systemd retains it and can use `result.json` afterward.
 
-### 6.4 Optional duplicate-start key
+### 6.4 Minimal keyed mutation state
 
-When `idempotency_key` is supplied to `job.start`:
+When `idempotency_key` is supplied for a mutation, HEC stores a bounded internal record under:
 
 ```text
-/var/lib/hec/job-keys/<sha256-key>
+/var/lib/hec/mutation-keys/<sha256-key>.json
 ```
 
-contains the job ID. Existing key means return the existing handle.
+The only states are missing, `in_progress`, and `completed`. The record binds the key to a canonical hash of the normalized operation and arguments. `in_progress` is durably published before the native effect and `completed` before returning. Matching completed requests replay; changed requests conflict; orphaned ambiguous effects report `uncertain_prior_execution`.
 
-No other operation requires idempotency machinery in v1.
+For `job.start`, the allocated job ID and exact systemd unit are recorded before launch. Lost `systemd-run` responses are resolved by inspecting that exact unit, and a clearly absent unit may be retried only with the same exact unit. Existing v0.0.11 job-key files are migrated only after the durable job specification reconstructs the same normalized request.
+
+This is internal duplicate-side-effect suppression, not a receipt, audit, evidence, history, workflow, or generalized cache feature.
 
 ### 6.5 Reproduce the ChatGPT failure case
 
@@ -679,7 +662,7 @@ No operation history, receipt database, policy state, verification records, or m
 
 Primary references:
 
-- OpenAI tunnel-client v0.0.10 and in-memory embedding: https://github.com/openai/tunnel-client
+- OpenAI tunnel-client pinned reviewed commit and restartable in-memory embedding: https://github.com/openai/tunnel-client
 - ChatGPT custom MCP behavior: https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta
 - MCP Go SDK: https://github.com/modelcontextprotocol/go-sdk
 - MCP tool structured results: https://modelcontextprotocol.io/specification/2025-11-25/server/tools

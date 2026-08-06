@@ -74,7 +74,7 @@ hec version
 
 `hec serve` runs the MCP server and Secure MCP Tunnel in the same process.
 
-The official OpenAI tunnel client v0.0.10 supports being embedded as a Go library and accepts the client side of an in-memory MCP transport pair. The MCP server receives the other side. HEC therefore needs no local TCP listener, Unix socket, stdio child, gateway daemon, or proxy process.
+The reviewed OpenAI tunnel client commit pinned below supports embedded operation and current `response_timeout` wire semantics. HEC owns a restartable in-memory MCP transport: each tunnel command connection receives a fresh transport pair and a fresh MCP server session. HEC therefore needs no local TCP listener, Unix socket, stdio child, gateway daemon, or proxy process.
 
 ```text
 ChatGPT
@@ -99,11 +99,32 @@ HEC operation dispatcher
 
 ```text
 Go                         1.26.2
-openai/tunnel-client       v0.0.10
+openai/tunnel-client       v0.0.11-0.20260806014146-1bf01b0e1079
 modelcontextprotocol/go-sdk v1.4.1
 ```
 
-These exact versions match the current stable OpenAI tunnel module. Dependency changes occur only when HEC itself is deliberately upgraded.
+The tunnel dependency is pinned to the exact reviewed upstream commit `1bf01b0e1079b097b445a6fe5ddfc4048dd6fe45`. Dependency changes occur only when HEC itself is deliberately upgraded.
+
+
+### Reliability and connection hardening
+
+Public `call_hec` dispatch has one context-aware slot. The gate covers the complete handler lifecycle and has a ten-second acquisition maximum. Panic containment releases the slot, returns a stable internal error, and logs only a redacted function stack.
+
+Each Secure MCP Tunnel client is one disposable generation. A generation owns its tunnel client, restartable MCP transport, connections, server sessions, contexts, and workers. A replacement is created only after the old generation is canceled, stopped, closed, and verified to have zero live workers. Readiness is bounded to 60 seconds, tunnel stop to 5 seconds, and complete generation cleanup to 10 seconds. Cleanup timeout is process-fatal so systemd restarts HEC rather than allowing generation overlap. Reconnect backoff is 250 milliseconds, 500 milliseconds, 1 second, 2 seconds, 5 seconds, then a 10-second cap with bounded jitter.
+
+Fixed synchronous budgets are:
+
+```text
+MaxDirectCall            90 seconds
+MaxJobWait               15 seconds
+ResponseDeliveryReserve  10 seconds
+CallGateAcquireTimeout   10 seconds
+GenerationReadyTimeout   60 seconds
+TunnelStopTimeout         5 seconds
+GenerationCleanupTimeout 10 seconds
+```
+
+HEC may retain minimal, bounded, internal keyed mutation state solely to prevent duplicate native side effects after ambiguous ChatGPT or tunnel delivery. This state does not create a public receipt API, audit log, evidence system, workflow ledger, universal history, or generalized command cache.
 
 ## 4. One public MCP tool
 
@@ -235,7 +256,7 @@ Arguments:
   "unset_env": ["NAME"],
   "stdin": "optional UTF-8 input",
   "stdin_base64": "optional binary input",
-  "timeout_ms": 120000,
+  "timeout_ms": 90000,
   "max_output_bytes": 1048576
 }
 ```
@@ -298,9 +319,9 @@ Output is read by byte offset:
 
 Jobs do not accept continuing interactive stdin. Interactive programs use terminals.
 
-An optional `idempotency_key` applies only to job creation. Repeating that key returns the existing handle instead of launching a second long-running process. This is the only special mechanism needed for the ChatGPT failure shown during HEC planning.
+An optional `idempotency_key` may be supplied for a native mutation. HEC binds the key to the normalized operation and arguments. A completed matching request replays its bounded prior result; a different request conflicts; an orphaned ambiguous mutation reports uncertainty instead of running again. `job.start` additionally records the allocated job ID and exact systemd unit before launch, so an ambiguous `systemd-run` response can be resolved without creating a second unit.
 
-No automatic retry occurs.
+No automatic retry occurs except a bounded retry of the same exact preallocated `job.start` unit after native inspection proves that unit absent.
 
 ### Persistent terminals
 
