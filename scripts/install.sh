@@ -34,7 +34,10 @@ install -d -m 0755 \
 install -d -m 0700 \
   /var/lib/hec/jobs \
   /var/lib/hec/job-keys \
-  /var/lib/hec/terminals
+  /var/lib/hec/terminals \
+  /var/lib/hec/browser \
+  /var/lib/hec/browser/profiles \
+  /var/lib/hec/browser/output
 
 STAGING_DIR=$(mktemp -d "$RELEASES_DIR/.${VERSION}.staging.XXXXXX")
 install -d -m 0755 \

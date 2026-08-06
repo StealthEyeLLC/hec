@@ -1,0 +1,7 @@
+id = "browser.playwright"
+description = "Automate browsers with the Playwright CLI using named sessions, persistent profiles, accessibility snapshots, screenshots, downloads, tracing, video, and Playwright tests."
+tags = ["browser", "playwright", "chromium", "automation", "web", "testing", "screenshot", "trace", "video"]
+commands = ["playwright-cli"]
+skills = ["playwright-cli"]
+recipe = "install-browser-playwright.sh"
+approximate_disk_class = "large"
