@@ -63,7 +63,7 @@ Use this guide to select among the 38 explicit `call_hec` operation branches. Ar
 
 | Operation | Select it when | Essential arguments and returned behavior |
 |---|---|---|
-| `capabilities` | Search installed operation metadata, manifests, skills, recipes, or one exact command on PATH. | Optional nonempty `query`, `limit`, and `include_missing`. Returns compact cards; no command is executed. |
+| `capabilities` | Search installed operation metadata, workspace cards, manifests, skills, recipes, or one exact command on PATH. | Optional nonempty `query`, `limit`, and `include_missing`. Returns compact cards; no command is executed. |
 | `skill.list` | Page through discovered Agent Skill metadata. | Optional `offset` and `limit`. Returns metadata only with `next_offset`, total, and `eof`. |
 | `skill.find` | Search Skill name, description, and location. | Supply nonempty `query`; optional `limit`. Returns ranked metadata only. |
 | `skill.read` | Load one Skill control document after discovery. | Supply exactly one exact `name` or discovered absolute `location`. Returns the complete `SKILL.md`, never referenced files automatically. |
