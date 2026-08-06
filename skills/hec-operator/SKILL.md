@@ -43,7 +43,7 @@ Create a separate Git worktree and branch for each independent repository task. 
 
 Use native CLIs and package managers through `run`, `job.start`, or a persistent terminal rather than expecting HEC-specific wrappers. Query `capabilities` first when presence is uncertain.
 
-Before browser automation, check whether the Playwright CLI command is installed. Do not claim Playwright or Chromium exists based on future forge plans. When present, invoke the CLI through `run` or a terminal.
+Before substantial browser automation, query `capabilities` for `browser.playwright`, locate `playwright-cli` with `skill.find`, and read that Skill. Invoke the installed CLI through `run` or a persistent terminal, and return generated browser files through HEC artifacts.
 
 ## Read the references
 

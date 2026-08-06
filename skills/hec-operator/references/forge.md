@@ -18,7 +18,7 @@ Use `run` for short noninteractive installers, `job.start` for long durable inst
 
 ## Playwright
 
-Do not assume the Playwright CLI or Chromium is installed. Query `capabilities` for the exact command or check command presence without executing it. When installed, invoke Playwright CLI through `run` or a persistent terminal; HEC does not add a browser wrapper.
+Query `capabilities` for `browser.playwright`, locate the `playwright-cli` Skill with `skill.find`, and read it before substantial browser work. Invoke the installed `playwright-cli` command through `run` for bounded work or a persistent terminal for long interactive debugging. Use named sessions, dedicated profiles and output directories, and return generated screenshots, downloads, traces, videos, or PDFs through HEC artifacts. HEC does not add browser-specific operations or a browser wrapper.
 
 ## Parallel repository work
 
