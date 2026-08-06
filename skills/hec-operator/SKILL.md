@@ -60,6 +60,10 @@ Create a separate native Git worktree and branch for each independent repository
 
 Do not make concurrent agents edit the same checkout. Use ordinary commands such as `git clone`, `git init --bare`, `git worktree add`, `git worktree list`, `git worktree remove`, `git worktree prune`, `git status`, `git commit`, `git fetch`, and `git push`. Do not expect HEC-specific Git operations.
 
+## Maintain HEC releases explicitly
+
+Read [references/maintenance.md](references/maintenance.md) before building, installing, publishing, or activating an HEC release. Keep installation separate from activation, run HEC-initiated cutovers through a durable job, and verify the exact Git commit after reconnecting. Do not invent automatic rollback or a release controller.
+
 ## Prefer native tools
 
 Use native CLIs and package managers through `run`, `job.start`, or a persistent terminal rather than expecting HEC-specific wrappers. Query `capabilities` first when presence is uncertain.
@@ -71,3 +75,4 @@ Before substantial browser automation, query `capabilities` for `browser.playwri
 - Read [references/operations.md](references/operations.md) for operation selection, essential arguments, handles, and offsets.
 - Read [references/forge.md](references/forge.md) for native-tool, recipe, installer, Playwright, and general worktree guidance.
 - Read [references/workspaces.md](references/workspaces.md) for workspace metadata, repository layouts, native Git worktree examples, deliveries, and task-owned cleanup.
+- Read [references/maintenance.md](references/maintenance.md) for pinned builds, immutable installs, deploy-key publication, explicit durable cutover, and manual older-release selection.

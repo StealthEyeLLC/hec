@@ -1,6 +1,6 @@
 # HEC
 
-**Status:** v1 design frozen; Slices 0 through 3 implemented.
+**Status:** v1 design frozen; construction through Slice 9 implemented.
 
 HEC is a standalone, ChatGPT-native, unrestricted root engineering environment designed and operated by ChatGPT and StealthEye.
 
@@ -81,6 +81,18 @@ one call_hec tool
    +-- skills and capability discovery
    +-- every installed native CLI
 ```
+
+## Release maintenance
+
+HEC release maintenance is three ordinary scripts:
+
+```bash
+HEC_VERSION=0.0.11 ./scripts/build.sh
+HEC_VERSION=0.0.11 ./scripts/install.sh
+./scripts/cutover.sh 0.0.11
+```
+
+`build.sh` uses the pinned Go toolchain and atomically produces exact build metadata. `install.sh` creates an immutable release and preserves an existing `/opt/hec/current` link. `cutover.sh` explicitly switches `current` atomically and restarts only `hec.service`. There is no automatic rollback, fallback pointer, release daemon, or deployment controller.
 
 ## Design test
 
