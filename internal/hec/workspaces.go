@@ -135,7 +135,19 @@ func workspaceSkillNames(skills []SkillMetadata) map[string][]string {
 }
 
 func inspectWorkspace(location, name, gitPath string, discoveredSkills []string) (workspaceMetadata, error) {
-	manifest, err := loadWorkspaceManifest(filepath.Join(location, ".hec", "workspace.toml"))
+	hecPath := filepath.Join(location, ".hec")
+	if info, err := os.Lstat(hecPath); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return workspaceMetadata{}, fmt.Errorf(".hec directory is a symlink")
+		}
+		if !info.IsDir() {
+			return workspaceMetadata{}, fmt.Errorf(".hec is not a directory")
+		}
+	} else if !os.IsNotExist(err) {
+		return workspaceMetadata{}, fmt.Errorf("inspect .hec directory: %w", err)
+	}
+
+	manifest, err := loadWorkspaceManifest(filepath.Join(hecPath, "workspace.toml"))
 	if err != nil {
 		return workspaceMetadata{}, err
 	}
@@ -146,7 +158,7 @@ func inspectWorkspace(location, name, gitPath string, discoveredSkills []string)
 		repository = resolveWorkspacePath(location, manifest.Repository)
 	} else {
 		for _, candidate := range []string{filepath.Join(location, "main"), filepath.Join(location, "repository")} {
-			if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+			if info, statErr := os.Lstat(candidate); statErr == nil && info.Mode()&os.ModeSymlink == 0 && info.IsDir() {
 				repository = candidate
 				break
 			} else if statErr != nil && !os.IsNotExist(statErr) {
@@ -159,7 +171,13 @@ func inspectWorkspace(location, name, gitPath string, discoveredSkills []string)
 	repositoryKind := "none"
 	if repository != "" {
 		inspectionPath := filepath.Clean(repository)
-		if _, statErr := os.Stat(inspectionPath); statErr == nil {
+		if info, statErr := os.Lstat(inspectionPath); statErr == nil {
+			if info.Mode()&os.ModeSymlink != 0 {
+				return workspaceMetadata{}, fmt.Errorf("repository path %s is a symlink", repository)
+			}
+			if !info.IsDir() {
+				return workspaceMetadata{}, fmt.Errorf("repository path %s is not a directory", repository)
+			}
 			repositoryExists = true
 			repositoryKind = inspectWorkspaceRepositoryKind(gitPath, inspectionPath)
 		} else if os.IsNotExist(statErr) {

@@ -87,6 +87,37 @@ func TestWorkspaceDiscoveryEmptyDirectChildrenAndSymlinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	metadataLink := filepath.Join(root, "metadata-link")
+	if err := os.Mkdir(metadataLink, 0755); err != nil {
+		t.Fatal(err)
+	}
+	metadataTarget := t.TempDir()
+	writeWorkspaceManifest(t, metadataTarget, "description = \"must not be followed\"\n")
+	if err := os.Symlink(filepath.Join(metadataTarget, ".hec"), filepath.Join(metadataLink, ".hec")); err != nil {
+		t.Fatal(err)
+	}
+
+	manifestLink := filepath.Join(root, "manifest-link")
+	if err := os.MkdirAll(filepath.Join(manifestLink, ".hec"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	manifestTarget := writeWorkspaceManifest(t, t.TempDir(), "description = \"must not be followed\"\n")
+	if err := os.Symlink(manifestTarget, filepath.Join(manifestLink, ".hec", "workspace.toml")); err != nil {
+		t.Fatal(err)
+	}
+
+	repositoryLinkWorkspace := t.TempDir()
+	if err := os.Symlink(t.TempDir(), filepath.Join(repositoryLinkWorkspace, "main")); err != nil {
+		t.Fatal(err)
+	}
+	linkedMetadata, err := inspectWorkspace(repositoryLinkWorkspace, "repo-link", "git", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if linkedMetadata.Repository != "" || linkedMetadata.RepositoryKind != "none" {
+		t.Fatalf("symlink repository candidate was followed: %#v", linkedMetadata)
+	}
+
 	cards, warnings, err = discoverWorkspaceCapabilities(root, "git", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -94,11 +125,57 @@ func TestWorkspaceDiscoveryEmptyDirectChildrenAndSymlinks(t *testing.T) {
 	if len(cards) != 1 || cards[0].ID != "workspace.alpha" {
 		t.Fatalf("direct-child cards = %#v", cards)
 	}
-	if len(warnings) != 1 || !strings.Contains(warnings[0], filepath.Join(root, "bad name")) || !strings.Contains(warnings[0], "directory name") {
+	if len(warnings) != 3 {
 		t.Fatalf("warnings = %#v", warnings)
 	}
-	if strings.Contains(strings.Join(warnings, " "), "linked") {
-		t.Fatalf("symlink should be ignored without warning: %#v", warnings)
+	joinedWarnings := strings.Join(warnings, "\n")
+	for _, wanted := range []string{
+		filepath.Join(root, "bad name"),
+		"metadata-link: .hec directory is a symlink",
+		"manifest-link: workspace manifest is not a regular file",
+	} {
+		if !strings.Contains(joinedWarnings, wanted) {
+			t.Fatalf("warnings missing %q: %#v", wanted, warnings)
+		}
+	}
+	if strings.Contains(joinedWarnings, filepath.Join(root, "linked")) {
+		t.Fatalf("top-level workspace symlink should be ignored without warning: %#v", warnings)
+	}
+}
+
+func TestWorkspaceDiscoveryDoesNotFollowMetadataOrRepositorySymlinks(t *testing.T) {
+	root := t.TempDir()
+
+	hecLinked := filepath.Join(root, "hec-linked")
+	if err := os.MkdirAll(hecLinked, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(t.TempDir(), filepath.Join(hecLinked, ".hec")); err != nil {
+		t.Fatal(err)
+	}
+
+	repositoryLinked := filepath.Join(root, "repository-linked")
+	if err := os.MkdirAll(filepath.Join(repositoryLinked, ".hec"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	writeWorkspaceManifest(t, repositoryLinked, "repository = \"linked-repository\"\n")
+	if err := os.Symlink(t.TempDir(), filepath.Join(repositoryLinked, "linked-repository")); err != nil {
+		t.Fatal(err)
+	}
+
+	cards, warnings, err := discoverWorkspaceCapabilities(root, "git", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cards) != 0 {
+		t.Fatalf("symlinked workspaces were discovered: %#v", cards)
+	}
+	joined := strings.Join(warnings, "\n")
+	if !strings.Contains(joined, hecLinked) || !strings.Contains(joined, ".hec directory is a symlink") {
+		t.Fatalf("missing .hec symlink warning: %#v", warnings)
+	}
+	if !strings.Contains(joined, repositoryLinked) || !strings.Contains(joined, "repository path") || !strings.Contains(joined, "is a symlink") {
+		t.Fatalf("missing repository symlink warning: %#v", warnings)
 	}
 }
 
