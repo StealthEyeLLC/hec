@@ -43,29 +43,14 @@ func NewMCPServer(dispatcher *Dispatcher) *mcp.Server {
 		input CallRequest,
 	) (*mcp.CallToolResult, Result, error) {
 		result := dispatcher.Dispatch(ctx, input)
-		content := []mcp.Content{
-			&mcp.TextContent{Text: result.Summary()},
-		}
 
-		for _, rawDescriptor := range result.Resources {
-			descriptor, ok := rawDescriptor.(ResourceDescriptor)
-			if !ok {
-				continue
-			}
-
-			size := descriptor.Size
-			content = append(content, &mcp.ResourceLink{
-				URI:         descriptor.URI,
-				Name:        descriptor.Name,
-				Title:       descriptor.Name,
-				Description: "HEC returned artifact.",
-				MIMEType:    descriptor.MediaType,
-				Size:        &size,
-			})
-		}
-
+		// Return text and structured output only. Emitting an MCP ResourceLink here
+		// causes ChatGPT to materialize the artifact into the conversation and show
+		// a separate approval prompt.
 		return &mcp.CallToolResult{
-			Content: content,
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: result.Summary()},
+			},
 			IsError: !result.OK,
 		}, result, nil
 	})
